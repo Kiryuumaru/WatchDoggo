@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29209.62
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WatchDoggo", "WatchDoggo\WatchDoggo.csproj", "{E38D8272-4D5B-41CE-B94F-2BE8C90CD4E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoggoWire", "DoggoWire\DoggoWire.csproj", "{D184BBEF-50C4-448D-9F5D-04D0A554963C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E38D8272-4D5B-41CE-B94F-2BE8C90CD4E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E38D8272-4D5B-41CE-B94F-2BE8C90CD4E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E38D8272-4D5B-41CE-B94F-2BE8C90CD4E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E38D8272-4D5B-41CE-B94F-2BE8C90CD4E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D184BBEF-50C4-448D-9F5D-04D0A554963C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D184BBEF-50C4-448D-9F5D-04D0A554963C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D184BBEF-50C4-448D-9F5D-04D0A554963C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D184BBEF-50C4-448D-9F5D-04D0A554963C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ABE9BD50-E4C0-4449-A1F4-330C67F895C6}
+	EndGlobalSection
+EndGlobal
