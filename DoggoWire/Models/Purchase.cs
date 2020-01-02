@@ -10,18 +10,21 @@ namespace DoggoWire.Models
     {
         Win,
         Lose,
+        Request,
         Ongoing
     }
 
     public class Purchase
     {
         public ActiveSymbol ActiveSymbol { get; private set; }
+        public BuyResponse BuyResponse { get; private set; }
         public Transaction BuyTransaction { get; private set; }
         public Transaction SellTransaction { get; private set; }
         public PurchaseType PurchaseType
         {
             get
             {
+                if (BuyTransaction == null) return PurchaseType.Request;
                 if (SellTransaction == null) return PurchaseType.Ongoing;
                 return Amount < 0 ? PurchaseType.Lose : PurchaseType.Win;
             }
@@ -30,14 +33,16 @@ namespace DoggoWire.Models
         {
             get
             {
+                if (BuyTransaction == null) return BuyResponse.Buy.BuyPrice;
                 if (SellTransaction == null) return BuyTransaction.Amount;
                 return BuyTransaction.Amount + SellTransaction.Amount;
             }
         }
 
-        public Purchase(ActiveSymbol activeSymbol, Transaction buyTransaction, Transaction sellTransaction = null)
+        public Purchase(ActiveSymbol activeSymbol, BuyResponse buyResponse = null,  Transaction buyTransaction = null, Transaction sellTransaction = null)
         {
             ActiveSymbol = activeSymbol;
+            BuyResponse = buyResponse;
             BuyTransaction = buyTransaction;
             SellTransaction = sellTransaction;
         }

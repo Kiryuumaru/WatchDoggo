@@ -305,24 +305,47 @@ namespace WatchDoggo.Forms
                 {
                     labelTotalProfitLoss.ForeColor = Color.Green;
                 }
-                if (args.Purchase.PurchaseType == PurchaseType.Ongoing)
+                if (args.Purchase.PurchaseType == PurchaseType.Request || args.Purchase.PurchaseType == PurchaseType.Ongoing)
                 {
-                    DataGridViewRow row = new DataGridViewRow { Tag = args.Purchase.BuyTransaction.TransactionId };
-                    row.CreateCells(
-                        dataGridViewPurchases,
-                        args.Purchase.BuyTransaction.TransactionTime.ToString("MM/dd/yyyy HH:mm:ss"),
-                        args.Purchase.ActiveSymbol == null ? "Unknown" : args.Purchase.ActiveSymbol.DisplayName,
-                        "Ongoing");
-                    dataGridViewPurchases.Rows.Insert(0, row);
+                    bool exist = false;
+                    foreach (DataGridViewRow row in dataGridViewPurchases.Rows)
+                    {
+                        if ((long)row.Tag == args.Purchase.BuyResponse.Buy.ContractId)
+                        {
+                            exist = true;
+                            break;
+                        }
+                    }
+                    if (!exist)
+                    {
+                        DataGridViewRow row = new DataGridViewRow { Tag = args.Purchase.BuyResponse.Buy.ContractId };
+                        string contractType = "Unknown";
+                        switch (args.Purchase.BuyResponse.Request.Parameters.ContractType)
+                        {
+                            case ContractType.Call:
+                                contractType = "Call";
+                                break;
+                            case ContractType.Put:
+                                contractType = "Put";
+                                break;
+                        }
+                        row.CreateCells(
+                            dataGridViewPurchases,
+                            args.Purchase.BuyResponse.Buy.StartTime.ToString("MM/dd/yyyy HH:mm:ss"),
+                            args.Purchase.ActiveSymbol == null ? args.Purchase.BuyResponse.Request.Parameters.Symbol : args.Purchase.ActiveSymbol.DisplayName,
+                            contractType,
+                            "Ongoing");
+                        dataGridViewPurchases.Rows.Insert(0, row);
+                    }
                 }
                 else
                 {
                     foreach (DataGridViewRow row in dataGridViewPurchases.Rows)
                     {
-                        if ((long)row.Tag == args.Purchase.BuyTransaction.TransactionId)
+                        if ((long)row.Tag == args.Purchase.BuyResponse.Buy.ContractId)
                         {
-                            row.Cells[2].Value = args.Purchase.Amount.ToString("0.################") + " " + args.Purchase.BuyTransaction.Currency;
-                            row.Cells[2].Style.ForeColor = args.Purchase.PurchaseType == PurchaseType.Win ? Color.Green : Color.Red;
+                            row.Cells[3].Value = args.Purchase.Amount.ToString("0.################") + " " + args.Purchase.BuyTransaction.Currency;
+                            row.Cells[3].Style.ForeColor = args.Purchase.PurchaseType == PurchaseType.Win ? Color.Green : Color.Red;
                             break;
                         }
                     }

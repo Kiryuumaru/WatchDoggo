@@ -3,6 +3,7 @@ using DoggoWire.Abstraction;
 
 namespace DoggoWire.Models
 {
+    [JsonObject(MemberSerialization.OptIn)]
     public class PingRequest : Request
     {
         [JsonProperty("ping")]

@@ -667,33 +667,28 @@ namespace DoggoWire.Services
             {
                 if (transactionStreamResponse.Error == null && transactionStreamResponse.Transaction.Action != TransactionAction.Unknown)
                 {
-                    Purchase purchase;
+                    Purchase purchase = Purchases.Find(p => p.BuyResponse.Buy.ContractId == transactionStreamResponse.Transaction.ContractId);
                     SymbolQuotes symbolQuotes = SymbolsQuotes.Find(tick => tick.ActiveSymbol.Symbol.Equals(transactionStreamResponse.Transaction.Symbol));
-                    if (symbolQuotes == null) return;
                     Transactions.Add(transactionStreamResponse.Transaction);
                     if (transactionStreamResponse.Transaction.Action == TransactionAction.Sell)
                     {
-                        if (Purchases.Count > 0)
+                        if (purchase != null)
                         {
-                            purchase = Purchases.Find(p => p.BuyTransaction.ContractId == transactionStreamResponse.Transaction.ContractId);
-
-                            if (purchase != null)
-                            {
-                                if (purchase.PurchaseType == PurchaseType.Ongoing)
-                                {
-                                    Purchases.Remove(purchase);
-                                    purchase = new Purchase(symbolQuotes.ActiveSymbol, purchase.BuyTransaction, transactionStreamResponse.Transaction);
-                                    Purchases.Add(purchase);
-                                    onPurchase?.Invoke(new PurchaseEventArgs(purchase));
-                                }
-                            }
+                            Purchases.Remove(purchase);
+                            purchase = new Purchase(symbolQuotes?.ActiveSymbol, purchase.BuyResponse, purchase.BuyTransaction, transactionStreamResponse.Transaction);
+                            Purchases.Add(purchase);
+                            onPurchase?.Invoke(new PurchaseEventArgs(purchase));
                         }
                     }
                     else if (transactionStreamResponse.Transaction.Action == TransactionAction.Buy)
                     {
-                        purchase = new Purchase(symbolQuotes.ActiveSymbol, transactionStreamResponse.Transaction);
-                        Purchases.Add(purchase);
-                        onPurchase?.Invoke(new PurchaseEventArgs(purchase));
+                        if (purchase != null)
+                        {
+                            Purchases.Remove(purchase);
+                            purchase = new Purchase(symbolQuotes?.ActiveSymbol, purchase.BuyResponse, transactionStreamResponse.Transaction, purchase.SellTransaction);
+                            Purchases.Add(purchase);
+                            onPurchase?.Invoke(new PurchaseEventArgs(purchase));
+                        }
                     }
                     onTransaction?.Invoke(new TransactionEventArgs(transactionStreamResponse.Transaction));
                 }
@@ -864,8 +859,8 @@ namespace DoggoWire.Services
                         Parameters = new BuyParameters()
                         {
                             Amount = BuyAmount,
-                            Basis = BuyParameters.ParameterBasis.Stake,
-                            ContractType = ReverseLogic ? (symbolQuotes.HeadSlope > 0 ? "PUT" : "CALL") : (symbolQuotes.HeadSlope > 0 ? "CALL" : "PUT"),
+                            Basis = ParameterBasis.Stake,
+                            ContractType = ReverseLogic ? (symbolQuotes.HeadSlope > 0 ? ContractType.Put : ContractType.Call) : (symbolQuotes.HeadSlope > 0 ? ContractType.Call : ContractType.Put),
                             Currency = Currency,
                             Duration = BuyDuration,
                             DurationUnit = BuyDurationUnit,
@@ -874,6 +869,19 @@ namespace DoggoWire.Services
                     });
                 }
                 onQuote?.Invoke(new QuoteEventArgs(symbolQuotes));
+            }
+
+            public static void BuyResponse(BuyResponse buyResponse)
+            {
+                Purchase purchase = Purchases.Find(p => p.BuyResponse.Buy.ContractId.Equals(buyResponse.Buy.ContractId));
+                if (purchase != null)
+                {
+                    Purchases.Remove(purchase);
+                }
+                SymbolQuotes symbolQuotes = SymbolsQuotes.Find(s => s.ActiveSymbol.Symbol.Equals(buyResponse.Request.Parameters.Symbol));
+                purchase = new Purchase(symbolQuotes?.ActiveSymbol, buyResponse, purchase?.BuyTransaction, purchase?.SellTransaction);
+                Purchases.Add(purchase);
+                onPurchase?.Invoke(new PurchaseEventArgs(purchase));
             }
 
             #endregion

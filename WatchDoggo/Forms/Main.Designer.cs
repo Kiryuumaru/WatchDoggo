@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel4 = new System.Windows.Forms.Panel();
             this.label1 = new System.Windows.Forms.Label();
@@ -57,6 +57,7 @@
             this.textBoxBuyDuration = new System.Windows.Forms.TextBox();
             this.label10 = new System.Windows.Forms.Label();
             this.panel10 = new System.Windows.Forms.Panel();
+            this.labelExpectedCount = new System.Windows.Forms.Label();
             this.labelExpectedAccuracy = new System.Windows.Forms.Label();
             this.label14 = new System.Windows.Forms.Label();
             this.labelLoseCount = new System.Windows.Forms.Label();
@@ -66,7 +67,6 @@
             this.buttonCalc = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
             this.textBoxLRSize = new System.Windows.Forms.TextBox();
-            this.labelExpectedCount = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
             this.panel11 = new System.Windows.Forms.Panel();
             this.checkBoxAllowStraight = new System.Windows.Forms.CheckBox();
@@ -96,6 +96,7 @@
             this.PurchaseColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.PurchaseColumn2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.PurchaseColumn3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PurchaseColumn4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.panel3 = new System.Windows.Forms.Panel();
             this.panel5 = new System.Windows.Forms.Panel();
             this.panel7 = new System.Windows.Forms.Panel();
@@ -105,6 +106,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.labelAccuracy = new System.Windows.Forms.Label();
             this.labelPurchaseHistory = new System.Windows.Forms.Label();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.panel1.SuspendLayout();
             this.panel4.SuspendLayout();
             this.panel6.SuspendLayout();
@@ -142,6 +144,7 @@
             // 
             // panel4
             // 
+            this.panel4.Controls.Add(this.comboBox1);
             this.panel4.Controls.Add(this.label1);
             this.panel4.Controls.Add(this.buttonReset);
             this.panel4.Controls.Add(this.buttonSwitch);
@@ -182,7 +185,7 @@
             this.buttonSwitch.Enabled = false;
             this.buttonSwitch.Location = new System.Drawing.Point(14, 95);
             this.buttonSwitch.Name = "buttonSwitch";
-            this.buttonSwitch.Size = new System.Drawing.Size(223, 23);
+            this.buttonSwitch.Size = new System.Drawing.Size(111, 23);
             this.buttonSwitch.TabIndex = 0;
             this.buttonSwitch.Text = "Switch Account";
             this.buttonSwitch.UseVisualStyleBackColor = true;
@@ -463,6 +466,7 @@
             // 
             this.panel10.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.panel10.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel10.Controls.Add(this.labelExpectedCount);
             this.panel10.Controls.Add(this.labelExpectedAccuracy);
             this.panel10.Controls.Add(this.label14);
             this.panel10.Controls.Add(this.labelLoseCount);
@@ -472,12 +476,23 @@
             this.panel10.Controls.Add(this.buttonCalc);
             this.panel10.Controls.Add(this.label7);
             this.panel10.Controls.Add(this.textBoxLRSize);
-            this.panel10.Controls.Add(this.labelExpectedCount);
             this.panel10.Controls.Add(this.label15);
             this.panel10.Location = new System.Drawing.Point(249, 90);
             this.panel10.Name = "panel10";
             this.panel10.Size = new System.Drawing.Size(417, 60);
             this.panel10.TabIndex = 33;
+            // 
+            // labelExpectedCount
+            // 
+            this.labelExpectedCount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.labelExpectedCount.AutoSize = true;
+            this.labelExpectedCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold);
+            this.labelExpectedCount.Location = new System.Drawing.Point(354, 9);
+            this.labelExpectedCount.Margin = new System.Windows.Forms.Padding(0);
+            this.labelExpectedCount.Name = "labelExpectedCount";
+            this.labelExpectedCount.Size = new System.Drawing.Size(30, 13);
+            this.labelExpectedCount.TabIndex = 26;
+            this.labelExpectedCount.Text = "N/A";
             // 
             // labelExpectedAccuracy
             // 
@@ -579,18 +594,6 @@
             this.textBoxLRSize.Size = new System.Drawing.Size(37, 20);
             this.textBoxLRSize.TabIndex = 17;
             this.textBoxLRSize.Leave += new System.EventHandler(this.ConfigOnLeave);
-            // 
-            // labelExpectedCount
-            // 
-            this.labelExpectedCount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.labelExpectedCount.AutoSize = true;
-            this.labelExpectedCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold);
-            this.labelExpectedCount.Location = new System.Drawing.Point(354, 9);
-            this.labelExpectedCount.Margin = new System.Windows.Forms.Padding(0);
-            this.labelExpectedCount.Name = "labelExpectedCount";
-            this.labelExpectedCount.Size = new System.Drawing.Size(30, 13);
-            this.labelExpectedCount.TabIndex = 5;
-            this.labelExpectedCount.Text = "N/A";
             // 
             // label15
             // 
@@ -902,7 +905,8 @@
             this.dataGridViewPurchases.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.PurchaseColumn1,
             this.PurchaseColumn2,
-            this.PurchaseColumn3});
+            this.PurchaseColumn3,
+            this.PurchaseColumn4});
             this.dataGridViewPurchases.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridViewPurchases.Location = new System.Drawing.Point(5, 37);
             this.dataGridViewPurchases.MultiSelect = false;
@@ -932,13 +936,23 @@
             // 
             // PurchaseColumn3
             // 
-            this.PurchaseColumn3.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.PurchaseColumn3.DefaultCellStyle = dataGridViewCellStyle1;
-            this.PurchaseColumn3.HeaderText = "Profit/Loss";
+            this.PurchaseColumn3.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
+            this.PurchaseColumn3.HeaderText = "Contract Type";
+            this.PurchaseColumn3.MinimumWidth = 100;
             this.PurchaseColumn3.Name = "PurchaseColumn3";
             this.PurchaseColumn3.ReadOnly = true;
             this.PurchaseColumn3.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            // 
+            // PurchaseColumn4
+            // 
+            this.PurchaseColumn4.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.PurchaseColumn4.DefaultCellStyle = dataGridViewCellStyle2;
+            this.PurchaseColumn4.HeaderText = "Profit/Loss";
+            this.PurchaseColumn4.MinimumWidth = 100;
+            this.PurchaseColumn4.Name = "PurchaseColumn4";
+            this.PurchaseColumn4.ReadOnly = true;
+            this.PurchaseColumn4.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             // 
             // panel3
             // 
@@ -1043,6 +1057,24 @@
             this.labelPurchaseHistory.TabIndex = 7;
             this.labelPurchaseHistory.Text = "Purchase History";
             // 
+            // comboBox1
+            // 
+            this.comboBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBox1.Enabled = false;
+            this.comboBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Items.AddRange(new object[] {
+            " ticks",
+            " seconds",
+            " minutes",
+            " hours",
+            " days"});
+            this.comboBox1.Location = new System.Drawing.Point(131, 96);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(105, 21);
+            this.comboBox1.TabIndex = 13;
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1131,16 +1163,12 @@
         private System.Windows.Forms.Label labelExpectedAccuracy;
         private System.Windows.Forms.ComboBox comboBoxUnit;
         private System.Windows.Forms.Label label15;
-        private System.Windows.Forms.Label labelExpectedCount;
         private System.Windows.Forms.TextBox textBoxSlopeTailBarrier;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label16;
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.TextBox textBoxLRTailSize;
         private System.Windows.Forms.TextBox textBoxR2TailBarrier;
-        private System.Windows.Forms.DataGridViewTextBoxColumn PurchaseColumn1;
-        private System.Windows.Forms.DataGridViewTextBoxColumn PurchaseColumn2;
-        private System.Windows.Forms.DataGridViewTextBoxColumn PurchaseColumn3;
         private System.Windows.Forms.Panel panel10;
         private System.Windows.Forms.CheckBox checkBoxReverse;
         private System.Windows.Forms.CheckBox checkBoxAllowStraight;
@@ -1165,5 +1193,11 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn MarketColumn3;
         private System.Windows.Forms.DataGridViewTextBoxColumn MarketColumn4;
         private System.Windows.Forms.DataGridViewTextBoxColumn MarketColumn5;
+        private System.Windows.Forms.DataGridViewTextBoxColumn PurchaseColumn1;
+        private System.Windows.Forms.DataGridViewTextBoxColumn PurchaseColumn2;
+        private System.Windows.Forms.DataGridViewTextBoxColumn PurchaseColumn3;
+        private System.Windows.Forms.DataGridViewTextBoxColumn PurchaseColumn4;
+        private System.Windows.Forms.Label labelExpectedCount;
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }

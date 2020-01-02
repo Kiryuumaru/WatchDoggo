@@ -3,6 +3,7 @@ using DoggoWire.Abstraction;
 
 namespace DoggoWire.Models
 {
+    [JsonObject(MemberSerialization.OptIn)]
     public class ActiveSymbolsRequest : Request
     {
         [JsonProperty("active_symbols")]

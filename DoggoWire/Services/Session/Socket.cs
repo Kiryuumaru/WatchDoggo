@@ -8,8 +8,15 @@ namespace DoggoWire.Services
     {
         private static void SendMsg(Request request)
         {
-            string s = JsonConvert.SerializeObject(request);
-            ws.Send(s);
+            if (ws.IsAlive)
+            {
+                ws.Send(JsonConvert.SerializeObject(request,
+                                Formatting.None,
+                                new JsonSerializerSettings
+                                {
+                                    NullValueHandling = NullValueHandling.Ignore
+                                }));
+            }
         }
 
         private static void CrunchData(string json)
@@ -40,7 +47,7 @@ namespace DoggoWire.Services
                     Current.TickResponse(JsonConvert.DeserializeObject<TickResponse>(json));
                     break;
                 case BuyResponse.MsgType:
-                    //Current.BuyResponse(JsonConvert.DeserializeObject<BuyResponse>(json));
+                    Current.BuyResponse(JsonConvert.DeserializeObject<BuyResponse>(json));
                     break;
             }
         }

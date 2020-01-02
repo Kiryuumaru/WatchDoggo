@@ -3,6 +3,7 @@ using DoggoWire.Abstraction;
 
 namespace DoggoWire.Models
 {
+    [JsonObject(MemberSerialization.OptIn)]
     public class BalanceRequest : Request
     {
         [JsonProperty("balance")]
@@ -10,13 +11,11 @@ namespace DoggoWire.Models
 
         [JsonProperty("subscribe")]
         private string subscribe = "1";
-
-        [JsonIgnore]
         public bool Subscribe
         {
             get
             {
-                return subscribe.Equals("1");
+                return subscribe == null ? false : subscribe.Equals("1");
             }
             set
             {

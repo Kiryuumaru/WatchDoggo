@@ -4,6 +4,7 @@ using DoggoWire.Abstraction;
 
 namespace DoggoWire.Models
 {
+    [JsonObject(MemberSerialization.OptIn)]
     public class TickRequest : Request
     {
         [JsonProperty("ticks")]
@@ -11,13 +12,11 @@ namespace DoggoWire.Models
 
         [JsonProperty("subscribe")]
         private string subscribe = "1";
-
-        [JsonIgnore]
         public bool Subscribe
         {
             get
             {
-                return subscribe.Equals("1");
+                return subscribe == null ? false : subscribe.Equals("1");
             }
             set
             {
