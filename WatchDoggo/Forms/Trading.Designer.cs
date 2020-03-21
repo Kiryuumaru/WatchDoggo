@@ -211,6 +211,7 @@
             this.Controls.Add(this.cartesianChart);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.panel6);
+            this.Enabled = false;
             this.MinimumSize = new System.Drawing.Size(925, 525);
             this.Name = "Trading";
             this.Padding = new System.Windows.Forms.Padding(10);

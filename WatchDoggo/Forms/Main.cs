@@ -47,6 +47,11 @@ namespace WatchDoggo.Forms
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+            LoadBackend();
+        }
+
+        private void LoadBackend()
+        {
             Session.Init(new Storage());
             if (!Session.Current.Exist)
             {
@@ -80,6 +85,18 @@ namespace WatchDoggo.Forms
             {
                 Session.Current.AuthorizeRequest();
             }
+            else
+            {
+                Invoke(new MethodInvoker(delegate
+                {
+                    if (Disposing) return;
+                    dataGridViewMarket.Rows.Clear();
+                    dataGridViewProfitTable.Rows.Clear();
+                    labelAccount.Text = "N/A";
+                    labelBalance.Text = "N/A";
+                    Enabled = false;
+                }));
+            }
         }
 
         private void OnStateChanges(Session.Current.CurrentStateChangesEventArgs args)
@@ -92,20 +109,12 @@ namespace WatchDoggo.Forms
                     Text = Session.Current.Email;
                     labelAccount.Text = Session.Current.LoginId + (Session.Current.Virtual ? " (virtual)" : "");
                     labelBalance.Text = Session.Current.Balance.ToString("0.################") + " " + Session.Current.Currency;
+                    Enabled = true;
                 }));
                 Session.Current.BalanceRequest();
                 Session.Current.ActiveSymbolsRequest();
                 Session.Current.ProfitTableRequest();
                 Session.Current.TransactionStreamRequest();
-            }
-            else
-            {
-                Invoke(new MethodInvoker(delegate
-                {
-                    if (Disposing) return;
-                    labelAccount.Text = "N/A";
-                    labelBalance.Text = "N/A";
-                }));
             }
         }
 
@@ -175,7 +184,6 @@ namespace WatchDoggo.Forms
             {
                 Close();
             }
-            Session.Current.AuthorizeRequest();
         }
 
         private void ButtonReset_Click(object sender, EventArgs e)

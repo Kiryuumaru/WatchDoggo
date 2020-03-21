@@ -317,6 +317,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(734, 411);
             this.Controls.Add(this.splitContainer1);
+            this.Enabled = false;
             this.MinimumSize = new System.Drawing.Size(750, 450);
             this.Name = "Main";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;

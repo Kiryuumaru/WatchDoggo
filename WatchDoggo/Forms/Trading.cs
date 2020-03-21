@@ -48,6 +48,7 @@ namespace WatchDoggo.Forms
         public Trading(Session.TradingInstance tradingInstance)
         {
             InitializeComponent();
+            Session.OnConnectionChanges += OnConnectionChanges;
             instance = tradingInstance;
             instance.SetTradingInstanceUI(this);
             Text = instance.ActiveSymbol.DisplayName;
@@ -112,6 +113,23 @@ namespace WatchDoggo.Forms
             });
         }
 
+        private void OnConnectionChanges(Session.ConnectionChangesEventArgs args)
+        {
+            if (args.Connected)
+            {
+                instance.Start();
+            }
+            else
+            {
+                instance.Stop();
+                Invoke(new MethodInvoker(delegate
+                {
+                    Text = instance.ActiveSymbol.DisplayName + " (Disconnected)";
+                    Enabled = false;
+                }));
+            }
+        }
+
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
@@ -121,6 +139,7 @@ namespace WatchDoggo.Forms
         protected override void OnClosing(CancelEventArgs e)
         {
             instance.Dispose();
+            Session.OnConnectionChanges -= OnConnectionChanges;
             base.OnClosing(e);
         }
 
@@ -128,8 +147,13 @@ namespace WatchDoggo.Forms
         {
             foreach (Quote quote in args.Quotes)
             {
-                ChartValues.Add(new QuoteMapper(quote));
+                if (!ChartValues.Any(item => item.Quote.Epoch == quote.Epoch)) ChartValues.Add(new QuoteMapper(quote));
             }
+            Invoke(new MethodInvoker(delegate
+            {
+                Text = instance.ActiveSymbol.DisplayName;
+                Enabled = true;
+            }));
         }
 
         public void OnQuote(Session.TradingInstance.QuoteEventArgs args)
@@ -156,7 +180,8 @@ namespace WatchDoggo.Forms
                     if (pur.SellTransaction != null)
                     {
                         if (quoteMapperSell == null) quoteMapperSell = mapper;
-                        if (Math.Abs(mapper.Quote.Epoch - pur.SellTransaction.DateExpiry) < Math.Abs(quoteMapperSell.Quote.Epoch - pur.SellTransaction.DateExpiry))
+                        if (Math.Abs(mapper.Quote.Epoch - pur.SellTransaction.DateExpiry) <
+                            Math.Abs(quoteMapperSell.Quote.Epoch - pur.SellTransaction.DateExpiry))
                         {
                             quoteMapperSell = mapper;
                         }
@@ -164,7 +189,8 @@ namespace WatchDoggo.Forms
                     else if (pur.BuyResponse != null)
                     {
                         if (quoteMapperRequest == null) quoteMapperRequest = mapper;
-                        if (Math.Abs(mapper.Quote.Epoch - pur.BuyResponse.Buy.StartTime) < Math.Abs(quoteMapperRequest.Quote.Epoch - pur.BuyResponse.Buy.StartTime))
+                        if (Math.Abs(mapper.Quote.Epoch - pur.BuyResponse.Buy.StartTime) <
+                            Math.Abs(quoteMapperRequest.Quote.Epoch - pur.BuyResponse.Buy.StartTime))
                         {
                             quoteMapperRequest = mapper;
                         }

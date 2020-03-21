@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Timers;
 using DoggoWire.Models;
 using Newtonsoft.Json;
 using WebSocketSharp;
@@ -105,6 +106,7 @@ namespace DoggoWire.Services
 
             public static void Stop()
             {
+                OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
                 ws.CloseAsync();
             }
 
@@ -128,17 +130,39 @@ namespace DoggoWire.Services
 
             #endregion
 
+            #region WatchdogTimer
+
+            private static Timer watchdogTimer;
+            private static void WatchdogTimer_Elapsed(object sender, ElapsedEventArgs e)
+            {
+                Console.WriteLine("Dog not kicked");
+                Start();
+                OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
+            }
+
+            private static void KickTheDog()
+            {
+                if (watchdogTimer != null) watchdogTimer.Stop();
+                watchdogTimer = new Timer(5000);
+                watchdogTimer.Elapsed += WatchdogTimer_Elapsed;
+                watchdogTimer.Start();
+            }
+
+            #endregion
+
             #region Callback
 
             private static void OnOpen(object sender, EventArgs e)
             {
                 OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(true));
-                Pinger.Update();
+                SendMsg(new PingRequest());
+                KickTheDog();
             }
 
             private static void OnMessage(object sender, MessageEventArgs e)
             {
                 CrunchData(e.Data);
+                KickTheDog();
             }
 
             #endregion
@@ -189,7 +213,7 @@ namespace DoggoWire.Services
                 switch (response.msg_type)
                 {
                     case PingResponse.MsgType:
-                        Pinger.Update();
+                        SendMsg(new PingRequest());
                         break;
                     case AuthorizeResponse.MsgType:
                         CrunchAuthorizeResponse(JsonConvert.DeserializeObject<AuthorizeResponse>(json, serializerSettings));

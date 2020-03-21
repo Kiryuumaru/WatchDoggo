@@ -55,7 +55,9 @@ namespace WatchDoggo.Forms
 
         private void ButtonSelect_Click(object sender, EventArgs e)
         {
+            Session.Current.Stop();
             Session.Current.Set(selectedAccount);
+            Session.Current.Start();
             Close();
         }
 

@@ -406,6 +406,13 @@ namespace DoggoWire.Services
                 });
             }
 
+            public void Stop()
+            {
+                isTickInitialized = false;
+                isTickHistoryInitialized = false;
+                quotes.Clear();
+            }
+
             public void SetTradingInstanceUI(ITradingInstanceUI instanceUI)
             {
                 tradingInstanceUI = instanceUI;
