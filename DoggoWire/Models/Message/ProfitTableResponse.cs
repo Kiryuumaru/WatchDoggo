@@ -1,14 +1,14 @@
 ﻿using Newtonsoft.Json;
-using System;
 using DoggoWire.Abstraction;
+using System;
 using DoggoWire.Services;
 
 namespace DoggoWire.Models
 {
-    public class Buy
+    public class ProfitTableTransaction
     {
-        [JsonProperty("balance_after")]
-        public decimal BalanceAfter { get; private set; }
+        [JsonProperty("app_id")]
+        public long AppId { get; private set; }
 
         [JsonProperty("buy_price")]
         public decimal BuyPrice { get; private set; }
@@ -25,25 +25,37 @@ namespace DoggoWire.Models
         [JsonProperty("purchase_time")]
         public long PurchaseTime { get; private set; }
 
+        [JsonProperty("sell_price")]
+        public decimal SellPrice { get; private set; }
+
+        [JsonProperty("sell_time")]
+        public long SellTime { get; private set; }
+
         [JsonProperty("shortcode")]
         public string Shortcode { get; private set; }
-
-        [JsonProperty("start_time")]
-        public long StartTime { get; private set; }
 
         [JsonProperty("transaction_id")]
         public long TransactionId { get; private set; }
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
-    public class BuyResponse : Response
+    public class ProfitTable
     {
-        public const string MsgType = "buy";
+        [JsonProperty("count")]
+        public int Count { get; private set; }
+
+        [JsonProperty("transactions")]
+        public ProfitTableTransaction[] Transactions { get; private set; }
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ProfitTableResponse : Response
+    {
+        public const string MsgType = "profit_table";
 
         [JsonProperty("echo_req")]
-        public BuyRequest Request { get; private set; }
+        public ProfitTableRequest Request { get; private set; }
 
-        [JsonProperty("buy")]
-        public Buy Buy { get; private set; }
+        [JsonProperty("profit_table")]
+        public ProfitTable ProfitTable { get; private set; }
     }
 }

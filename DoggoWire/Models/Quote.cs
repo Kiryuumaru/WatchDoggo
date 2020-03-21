@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DoggoWire.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,20 +9,28 @@ namespace DoggoWire.Models
 {
     public class Quote
     {
+        public List<Transaction> Transactions { get; private set; } = new List<Transaction>();
         public string Symbol { get; private set; }
-        public decimal Value { get; private set; }
-        public DateTime DateTime { get; private set; }
-        public Quote(string symbol, decimal value, DateTime dateTime)
+        public double Value { get; private set; }
+        public long Epoch { get; private set; }
+        public DateTime DateTime
+        {
+            get
+            {
+                return Helpers.ConvertEpoch(Epoch);
+            }
+        }
+        public Quote(string symbol, double value, long epoch)
         {
             Symbol = symbol;
             Value = value;
-            DateTime = dateTime;
+            Epoch = epoch;
         }
         public Quote(Tick tick)
         {
             Symbol = tick.Symbol;
             Value = tick.Quote;
-            DateTime = tick.DateTime;
+            Epoch = tick.Epoch;
         }
     }
 }

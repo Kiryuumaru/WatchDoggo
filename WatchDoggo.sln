@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29209.62
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WatchDoggo", "WatchDoggo\WatchDoggo.csproj", "{E38D8272-4D5B-41CE-B94F-2BE8C90CD4E2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoggoWire", "DoggoWire\DoggoWire.csproj", "{D184BBEF-50C4-448D-9F5D-04D0A554963C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DoggoWire", "DoggoWire\DoggoWire.csproj", "{D184BBEF-50C4-448D-9F5D-04D0A554963C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

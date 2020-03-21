@@ -14,5 +14,9 @@ namespace DoggoWire.Services
         {
             return epoch.AddSeconds(unixTime);
         }
+        public static long ConvertDateTime(DateTime dateTime)
+        {
+            return (long)(dateTime - epoch).TotalSeconds;
+        }
     }
 }

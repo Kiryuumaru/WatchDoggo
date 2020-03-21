@@ -57,26 +57,19 @@ namespace DoggoWire.Models
         public string MarketDisplayName { get; private set; }
 
         [JsonProperty("pip")]
-        public decimal Pip { get; private set; }
+        public double Pip { get; private set; }
 
         [JsonProperty("quoted_currency_symbol")]
         public string QuotedCurrencySymbol { get; private set; }
 
         [JsonProperty("spot")]
-        public decimal Spot { get; private set; }
+        public double Spot { get; private set; }
 
         [JsonProperty("spot_age")]
         public string SpotAge { get; private set; }
 
         [JsonProperty("spot_time")]
-        private readonly int spotTime = 0;
-        public DateTime SpotTime
-        {
-            get
-            {
-                return Helpers.ConvertEpoch(spotTime);
-            }
-        }
+        public long SpotTime { get; private set; }
 
         [JsonProperty("submarket")]
         public string Submarket { get; private set; }

@@ -25,7 +25,7 @@ namespace DoggoWire.Services
             {
                 get
                 {
-                    return Delay < TradeSafeMillis;
+                    return Delay < 1000;
                 }
             }
             public static async void Update()

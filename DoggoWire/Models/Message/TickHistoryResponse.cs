@@ -7,7 +7,7 @@ namespace DoggoWire.Models
     public class History
     {
         [JsonProperty("prices")]
-        public decimal[] Prices { get; private set; }
+        public double[] Prices { get; private set; }
 
         [JsonProperty("times")]
         public int[] Times { get; private set; }

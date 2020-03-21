@@ -57,14 +57,7 @@ namespace DoggoWire.Models
         public string Currency { get; private set; }
 
         [JsonProperty("date_expiry")]
-        private readonly int dateExpiry = 0;
-        public DateTime DateExpiry
-        {
-            get
-            {
-                return Helpers.ConvertEpoch(dateExpiry);
-            }
-        }
+        public long DateExpiry { get; private set; }
 
         [JsonProperty("display_name")]
         public string DisplayName { get; private set; }
@@ -73,17 +66,10 @@ namespace DoggoWire.Models
         public string Id { get; private set; }
 
         [JsonProperty("longcode")]
-        public string LongCode { get; private set; }
+        public string Longcode { get; private set; }
 
         [JsonProperty("purchase_time")]
-        private readonly int purchaseTime = 0;
-        public DateTime PurchaseTime
-        {
-            get
-            {
-                return Helpers.ConvertEpoch(purchaseTime);
-            }
-        }
+        public long PurchaseTime { get; private set; }
 
         [JsonProperty("symbol")]
         public string Symbol { get; private set; }
@@ -92,14 +78,7 @@ namespace DoggoWire.Models
         public long TransactionId { get; private set; }
 
         [JsonProperty("transaction_time")]
-        private readonly int transactionTime = 0;
-        public DateTime TransactionTime
-        {
-            get
-            {
-                return Helpers.ConvertEpoch(transactionTime);
-            }
-        }
+        public long TransactionTime { get; private set; }
     }
 
     [JsonObject(MemberSerialization.OptIn)]

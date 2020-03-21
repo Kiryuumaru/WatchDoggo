@@ -139,7 +139,7 @@
             this.Name = "SwitchAccount";
             this.Padding = new System.Windows.Forms.Padding(10);
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Choose Account";
             this.panel3.ResumeLayout(false);
             this.panel3.PerformLayout();

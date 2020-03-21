@@ -8,20 +8,13 @@ namespace DoggoWire.Models
     public class Tick
     {
         [JsonProperty("ask")]
-        public decimal Ask { get; private set; }
+        public double Ask { get; private set; }
 
         [JsonProperty("bid")]
-        public decimal Bid { get; private set; }
+        public double Bid { get; private set; }
 
         [JsonProperty("epoch")]
-        private readonly int epoch = 0;
-        public DateTime DateTime
-        {
-            get
-            {
-                return Helpers.ConvertEpoch(epoch);
-            }
-        }
+        public long Epoch { get; private set; }
 
         [JsonProperty("id")]
         public string Id { get; private set; }
@@ -30,7 +23,7 @@ namespace DoggoWire.Models
         public int PipSize { get; private set; }
 
         [JsonProperty("quote")]
-        public decimal Quote { get; private set; }
+        public double Quote { get; private set; }
 
         [JsonProperty("symbol")]
         public string Symbol { get; private set; }

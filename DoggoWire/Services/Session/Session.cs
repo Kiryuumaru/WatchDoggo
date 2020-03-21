@@ -1,14 +1,21 @@
 ﻿using DoggoWire.Abstraction;
+using DoggoWire.Models;
 using Microsoft.Win32;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using WebSocketSharp;
+using WebSocketSharp.Net;
 
 namespace DoggoWire.Services
 {
     public static partial class Session
     {
-        #region Struct
+        #region HelperClass
 
         private struct RegKey
         {
@@ -33,10 +40,6 @@ namespace DoggoWire.Services
             public const string CutoffWinEnable = "cutoff_win_enable";
         }
 
-        #endregion
-
-        #region HelperClass
-
         public class ConnectionChangesEventArgs : EventArgs
         {
             public bool Connected { get; private set; }
@@ -50,24 +53,17 @@ namespace DoggoWire.Services
 
         #region Properties
 
+        private static readonly JsonSerializerSettings serializerSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
         private static IStorage storage = null;
-
         private static WebSocket ws;
-        private static bool clearCurrentSession = true;
-        private static Action<ConnectionChangesEventArgs> onConnectionChanges;
 
+        public static event Action<ConnectionChangesEventArgs> OnConnectionChanges;
         public static bool Alive { get { return ws.IsAlive; } }
-        public static long TradeSafeMillis
+        public static bool LoggedIn
         {
             get
             {
-                object blob = storage.GetValue(RegKey.TradeSafeMillis);
-                if (blob == null) return 1000;
-                return Convert.ToInt32(blob);
-            }
-            set
-            {
-                storage.SetValue(RegKey.TradeSafeMillis, value);
+                return (Accounts?.Length ?? 0) != 0;
             }
         }
 
@@ -75,79 +71,112 @@ namespace DoggoWire.Services
 
         #region Initializers
 
-        public static async void Init(IStorage _storage)
+        public static void Init(IStorage _storage)
         {
             storage = _storage;
-            while (true)
+            if (ws == null)
             {
-                if (ws == null)
+                Current.Start();
+            }
+        }
+
+        #endregion
+
+        #region Auth
+
+        private const string Prefix = "http://+:80/";
+        private static readonly HttpListener authListener = new HttpListener();
+
+        public static Account[] Accounts
+        {
+            get
+            {
+                object blob = storage.GetValue(RegKey.Auth);
+                if (blob == null) return null;
+                string value = (string)blob;
+                if (value.Contains("redirect.html?"))
                 {
-                    Start();
-                }
-                else if (Pinger.Delay > 30000)
-                {
-                    if (!ws.IsAlive)
+                    List<Account> accounts = new List<Account>();
+                    string[] data = value.Substring(value.IndexOf("?") + 1).Split('&');
+                    int acctIndex = 1;
+                    while (true)
                     {
-                        onConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
-                        Start(false);
+                        string acct = Array.Find(data, i => i.Contains("acct" + acctIndex));
+                        if (string.IsNullOrEmpty(acct)) break;
+                        string token = data.First(i => i.Contains("token" + acctIndex));
+                        string cur = data.First(i => i.Contains("cur" + acctIndex));
+                        accounts.Add(new Account(
+                            acct.Substring(acct.IndexOf("=") + 1),
+                            token.Substring(token.IndexOf("=") + 1),
+                            cur.Substring(cur.IndexOf("=") + 1),
+                            acct.Contains("VRT")));
+                        acctIndex++;
                     }
+                    return accounts.ToArray();
                 }
-                else if (Current.LastTickResponse > 30000 && Current.Started)
+                else
                 {
-                    onConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
-                    Current.Refresh();
+                    return null;
                 }
-                await Task.Delay(30000);
             }
         }
 
-        public static void Start(bool clearCurrent = true)
+        public static void Login(Action onFinish)
         {
-            clearCurrentSession = clearCurrent;
-            Task.Run(delegate
+            string host = System.IO.File.ReadAllText(@"C:\\Windows\\System32\\Drivers\\etc\\hosts");
+            if (!host.Contains("127.0.0.1 WatchDoggo.com"))
             {
-                ws = new WebSocket("wss://ws.binaryws.com/websockets/v3?app_id=21644");
-                ws.OnOpen += OnOpen;
-                ws.OnMessage += OnMessage;
-                ws.Connect();
-                Pinger.Update();
-            });
+                System.IO.File.AppendAllText(@"C:\\Windows\\System32\\Drivers\\etc\\hosts", "\n127.0.0.1 WatchDoggo.com");
+            }
+            if (!HttpListener.IsSupported)
+            {
+                Console.WriteLine("HttpListener is not supported on this platform.");
+                return;
+            }
+            if (!authListener.IsListening)
+            {
+                if (!authListener.Prefixes.Contains(Prefix)) authListener.Prefixes.Add(Prefix);
+                authListener.Start();
+                authListener.BeginGetContext((result) =>
+                {
+                    HttpListenerContext context = authListener.EndGetContext(result);
+
+                    byte[] buffer = Encoding.UTF8.GetBytes("<html><body>Redirecting . . .</body></html>");
+
+                    context.Response.ContentType = "text/html";
+                    context.Response.ContentLength64 = buffer.Length;
+                    context.Response.StatusCode = 200;
+                    context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+                    context.Response.OutputStream.Close();
+
+                    storage.SetValue(RegKey.Auth, context.Request.RawUrl);
+                    if (LoggedIn)
+                    {
+                        authListener.Stop();
+                        authListener.Close();
+                        onFinish?.Invoke();
+                    }
+                }, null);
+            }
+            Process.Start(new ProcessStartInfo("https://oauth.binary.com/oauth2/authorize?app_id=21644"));
         }
 
-        public static void Stop()
+        public static void Logout()
         {
-            ws.CloseAsync();
+            storage.SetValue(RegKey.Auth, "");
+            storage.SetValue(RegKey.SelectedAuth, "");
         }
 
         #endregion
 
-        #region Callback
+        #region Socket
 
-        private static void OnOpen(object sender, EventArgs e)
+        private static void SendMsg(Request request)
         {
-            onConnectionChanges?.Invoke(new ConnectionChangesEventArgs(true));
-            if (clearCurrentSession)
+            if (ws.IsAlive)
             {
-                Current.Initialize();
+                ws.Send(JsonConvert.SerializeObject(request, Formatting.None, serializerSettings));
             }
-            else
-            {
-                Current.Refresh();
-            }
-        }
-
-        private static void OnMessage(object sender, MessageEventArgs e)
-        {
-            CrunchData(e.Data);
-        }
-
-        #endregion
-
-        #region Methods
-
-        public static void SetOnConnectionChanges(Action<ConnectionChangesEventArgs> eventHandler)
-        {
-            onConnectionChanges = eventHandler;
         }
 
         #endregion

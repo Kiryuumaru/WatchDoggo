@@ -12,8 +12,16 @@ namespace DoggoWire.Models
     public enum ContractType
     {
         Call,
-        Put,
-        Unknown
+        Put
+    }
+
+    public enum DurationUnit
+    {
+        Ticks,
+        Seconds,
+        Minutes,
+        Hours,
+        Days
     }
 
     [JsonObject(MemberSerialization.OptIn)]
@@ -42,15 +50,12 @@ namespace DoggoWire.Models
         {
             get
             {
-                switch (contractType)
+                return contractType switch
                 {
-                    case "CALL":
-                        return ContractType.Call;
-                    case "PUT":
-                        return ContractType.Put;
-                    default:
-                        return ContractType.Unknown;
-                }
+                    "CALL" => ContractType.Call,
+                    "PUT" => ContractType.Put,
+                    _ => ContractType.Call,
+                };
             }
             set
             {
@@ -73,7 +78,43 @@ namespace DoggoWire.Models
         public int Duration { get; set; }
 
         [JsonProperty("duration_unit")]
-        public string DurationUnit { get; set; }
+        private string durationUnit = "";
+        public DurationUnit DurationUnit
+        {
+            get
+            {
+                return durationUnit switch
+                {
+                    "t" => DurationUnit.Ticks,
+                    "s" => DurationUnit.Seconds,
+                    "m" => DurationUnit.Minutes,
+                    "h" => DurationUnit.Hours,
+                    "d" => DurationUnit.Days,
+                    _ => DurationUnit.Ticks,
+                };
+            }
+            set
+            {
+                switch (value)
+                {
+                    case DurationUnit.Ticks:
+                        durationUnit = "t";
+                        break;
+                    case DurationUnit.Seconds:
+                        durationUnit = "s";
+                        break;
+                    case DurationUnit.Minutes:
+                        durationUnit = "m";
+                        break;
+                    case DurationUnit.Hours:
+                        durationUnit = "h";
+                        break;
+                    case DurationUnit.Days:
+                        durationUnit = "d";
+                        break;
+                }
+            }
+        }
 
         [JsonProperty("symbol")]
         public string Symbol { get; set; }

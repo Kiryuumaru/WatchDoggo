@@ -17,9 +17,9 @@ namespace DoggoWire.Models
     public class Purchase
     {
         public ActiveSymbol ActiveSymbol { get; private set; }
-        public BuyResponse BuyResponse { get; private set; }
-        public Transaction BuyTransaction { get; private set; }
-        public Transaction SellTransaction { get; private set; }
+        public BuyResponse BuyResponse { get; set; }
+        public Transaction BuyTransaction { get; set; }
+        public Transaction SellTransaction { get; set; }
         public PurchaseType PurchaseType
         {
             get

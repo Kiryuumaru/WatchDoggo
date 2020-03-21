@@ -8,5 +8,8 @@ namespace DoggoWire.Models
     {
         [JsonProperty("authorize")]
         public string AuthorizeToken { get; set; }
+
+        [JsonProperty("passthrough")]
+        public string Passthrough { get; set; }
     }
 }
