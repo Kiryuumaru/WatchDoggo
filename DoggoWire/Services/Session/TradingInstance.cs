@@ -27,6 +27,8 @@ namespace DoggoWire.Services
                 void OnQuoteHistoryReady(QuoteHistoryEventArgs args);
                 void OnQuote(QuoteEventArgs args);
                 void OnTransaction(PurchaseEventArgs args);
+                void OnCutoff(CutoffEventArgs args);
+                void OnAutoBuyChanges(AutoBuyChangesArgs args);
             }
 
             public class PurchaseEventArgs : EventArgs
@@ -65,22 +67,45 @@ namespace DoggoWire.Services
                 }
             }
 
+            public class AutoBuyChangesArgs : EventArgs
+            {
+                public bool AutoBuyEnabled { get; private set; }
+                public AutoBuyChangesArgs(bool autoBuyEnabled)
+                {
+                    AutoBuyEnabled = autoBuyEnabled;
+                }
+            }
+
             #endregion
 
             #region Properties
 
+            private readonly List<Transaction> transactionsToSeg = new List<Transaction>();
             private readonly List<Quote> quotes = new List<Quote>();
-            private readonly List<Quote> initQuotes = new List<Quote>();
             private ITradingInstanceUI tradingInstanceUI;
             private string tickStreamId = "";
             private bool isTickHistoryInitialized = false;
-            private bool isTickInitialized = false;
 
             public readonly ActiveSymbol ActiveSymbol;
             public List<Purchase> Purchases = new List<Purchase>();
-
+            public double LRSlope { get; private set; } = 0;
+            public double LRR2 { get; private set; } = 0;
+            public bool LRReady { get; private set; } = false;
             public int MarkCounter { get; private set; } = 0;
 
+            private bool autoBuyEnable = false;
+            public bool AutoBuyEnable
+            {
+                get
+                {
+                    return autoBuyEnable;
+                }
+                set
+                {
+                    autoBuyEnable = value;
+                    tradingInstanceUI?.OnAutoBuyChanges(new AutoBuyChangesArgs(value));
+                }
+            }
             public Quote this[int i]
             {
                 get
@@ -102,12 +127,26 @@ namespace DoggoWire.Services
                     return MarkCounter > 0;
                 }
             }
+            public int WinCount
+            {
+                get
+                {
+                    return Purchases.FindAll(w => w.PurchaseType == PurchaseType.Win).Count;
+                }
+            }
+            public int LoseCount
+            {
+                get
+                {
+                    return Purchases.FindAll(w => w.PurchaseType == PurchaseType.Lose).Count;
+                }
+            }
             public double Accuracy
             {
                 get
                 {
-                    int win = Purchases.FindAll(w => w.PurchaseType == PurchaseType.Win).Count;
-                    int loss = Purchases.FindAll(l => l.PurchaseType == PurchaseType.Lose).Count;
+                    int win = WinCount;
+                    int loss = LoseCount;
                     if (win + loss == 0) return 0;
                     return (double)win / (win + loss);
                 }
@@ -134,6 +173,29 @@ namespace DoggoWire.Services
                     return amount;
                 }
             }
+            public int TickDuration
+            {
+                get
+                {
+                    if (quotes.Count > 1) return (int)(quotes[1].Epoch - quotes[0].Epoch);
+                    else return -1;
+                }
+            }
+            public long LastEpoch
+            {
+                get
+                {
+                    if (quotes.Count > 0) return quotes[quotes.Count - 1].Epoch;
+                    else return -1;
+                }
+            }
+            public long EpochToPredict
+            {
+                get
+                {
+                    return LastEpoch + (ConvertToTicks(BuyDurationUnit, BuyDuration) * TickDuration);
+                }
+            }
 
             #endregion
 
@@ -143,13 +205,13 @@ namespace DoggoWire.Services
             {
                 get
                 {
-                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.LRSize);
-                    if (blob == null) return 30;
+                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.Size);
+                    if (blob == null) return 120;
                     return Convert.ToInt32(blob);
                 }
                 set
                 {
-                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.LRSize, value);
+                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.Size, value);
                 }
             }
             public decimal BuyAmount
@@ -216,17 +278,43 @@ namespace DoggoWire.Services
                     }
                 }
             }
-            public decimal CutoffLoseAmount
+            public double AutoBuySlopeBarrier
             {
                 get
                 {
-                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffLoseAmount);
-                    if (blob == null) return 0;
-                    return Convert.ToDecimal(blob);
+                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.LRSlopeBarrier);
+                    if (blob == null) return 999;
+                    return Convert.ToDouble(blob);
                 }
                 set
                 {
-                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffLoseAmount, value);
+                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.LRSlopeBarrier, value);
+                }
+            }
+            public double AutoBuyR2Barrier
+            {
+                get
+                {
+                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.LRR2Barrier);
+                    if (blob == null) return 999;
+                    return Convert.ToDouble(blob);
+                }
+                set
+                {
+                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.LRR2Barrier, value);
+                }
+            }
+            public bool CutoffEnable
+            {
+                get
+                {
+                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffEnable);
+                    if (blob == null) return false;
+                    return blob.ToString().Equals("1");
+                }
+                set
+                {
+                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffEnable, value ? "1" : "0");
                 }
             }
             public decimal CutoffWinAmount
@@ -240,6 +328,32 @@ namespace DoggoWire.Services
                 set
                 {
                     storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffWinAmount, value);
+                }
+            }
+            public decimal CutoffLoseAmount
+            {
+                get
+                {
+                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffLoseAmount);
+                    if (blob == null) return 0;
+                    return Convert.ToDecimal(blob);
+                }
+                set
+                {
+                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffLoseAmount, value);
+                }
+            }
+            public int LRSize
+            {
+                get
+                {
+                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.LRSize);
+                    if (blob == null) return 5;
+                    return Convert.ToInt32(blob);
+                }
+                set
+                {
+                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.LRSize, value);
                 }
             }
             public bool ReverseLogic
@@ -268,32 +382,6 @@ namespace DoggoWire.Services
                     storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.AllowStraight, value ? "1" : "0");
                 }
             }
-            public bool CutoffLoseEnable
-            {
-                get
-                {
-                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffLoseEnable);
-                    if (blob == null) return false;
-                    return blob.ToString().Equals("1");
-                }
-                set
-                {
-                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffLoseEnable, value ? "1" : "0");
-                }
-            }
-            public bool CutoffWinEnable
-            {
-                get
-                {
-                    object blob = storage.GetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffWinEnable);
-                    if (blob == null) return false;
-                    return blob.ToString().Equals("1");
-                }
-                set
-                {
-                    storage.SetValue(ActiveSymbol.Symbol + "_" + RegKey.CutoffWinEnable, value ? "1" : "0");
-                }
-            }
 
             #endregion
 
@@ -314,10 +402,7 @@ namespace DoggoWire.Services
                 {
                     Task.Run(delegate
                     {
-                        SendMsg(new ForgetRequest()
-                        {
-                            Forget = tickStreamId
-                        });
+                        SendMsg(new ForgetRequest { Forget = tickStreamId });
                     });
                 }
                 Current.OpenTradingSymbols.Remove(ActiveSymbol.Symbol);
@@ -331,21 +416,15 @@ namespace DoggoWire.Services
 
             #region Helpers
 
-            private void LinearRegression(int count, int offset, out double rSquared, out double slope)
+            public void LinearRegression(int count, int offset, out double rSquared, out double slope)
             {
                 int[] xVals = new int[count];
                 double[] yVals = new double[count];
-                double[] yValsNorm = new double[count];
 
                 for (int i = 0; i < xVals.Length; i++)
                 {
                     xVals[i] = i;
-                    yVals[i] = quotes[offset + i].Value;
-                }
-                for (int i = 0; i < xVals.Length; i++)
-                {
-                    xVals[i] = i;
-                    yValsNorm[i] = (double)((yVals[i] - yVals.Min()) / (yVals.Max() - yVals.Min())) * 100;
+                    yVals[i] = quotes[quotes.Count - count + i - offset].Value;
                 }
 
                 int sumOfX = 0;
@@ -357,7 +436,7 @@ namespace DoggoWire.Services
                 for (var i = 0; i < xVals.Length; i++)
                 {
                     int x = xVals[i];
-                    double y = yValsNorm[i];
+                    double y = yVals[i];
                     sumCodeviates += x * y;
                     sumOfX += x;
                     sumOfY += y;
@@ -373,25 +452,25 @@ namespace DoggoWire.Services
 
                 var dblR = rNumerator / Math.Sqrt(rDenom);
 
-                rSquared = dblR * dblR * 100;
-                slope = (count - 1) * (sCo / ssX);
+                rSquared = dblR * dblR;
+                slope = sCo / ssX;
             }
 
-            private int ConvertToTicks(DurationUnit durationUnit, int value)
+            public int ConvertToTicks(DurationUnit durationUnit, int value)
             {
-                switch (durationUnit)
+                if (quotes.Count > 1)
                 {
-                    case DurationUnit.Seconds:
-                        return BuyDuration / 2;
-                    case DurationUnit.Minutes:
-                        return BuyDuration * 30;
-                    case DurationUnit.Hours:
-                        return BuyDuration * 1800;
-                    case DurationUnit.Days:
-                        return BuyDuration * 43200;
-                    default:
-                        return value;
+                    int diff = (int)(quotes[1].Epoch - quotes[0].Epoch);
+                    return durationUnit switch
+                    {
+                        DurationUnit.Seconds => value / diff,
+                        DurationUnit.Minutes => value * (60 / diff),
+                        DurationUnit.Hours => value * (3600 / diff),
+                        DurationUnit.Days => value * (86400 / diff),
+                        _ => value,
+                    };
                 }
+                else return -1;
             }
 
             #endregion
@@ -404,11 +483,11 @@ namespace DoggoWire.Services
                 {
                     Ticks = new List<string>() { ActiveSymbol.Symbol }
                 });
+                AutoBuyEnable = false;
             }
 
             public void Stop()
             {
-                isTickInitialized = false;
                 isTickHistoryInitialized = false;
                 quotes.Clear();
             }
@@ -416,11 +495,6 @@ namespace DoggoWire.Services
             public void SetTradingInstanceUI(ITradingInstanceUI instanceUI)
             {
                 tradingInstanceUI = instanceUI;
-            }
-
-            public void Clear()
-            {
-                quotes.Clear();
             }
 
             public double MinValue()
@@ -443,9 +517,34 @@ namespace DoggoWire.Services
                 return quotes.Max(q => q.DateTime);
             }
 
+            public Quote First()
+            {
+                return quotes.First();
+            }
+
+            public Quote Last()
+            {
+                return quotes.Last();
+            }
+
             public void Mark(int ticksDuration)
             {
                 MarkCounter = ticksDuration;
+            }
+
+            private void AddQuote(Quote quote)
+            {
+                if (quotes.Any(item => item.Epoch == quote.Epoch)) return;
+                Quote quoteBefore = quotes.LastOrDefault(item => item.Epoch < quote.Epoch);
+                if (quotes.Contains(quoteBefore))
+                {
+                    quotes.Insert(quotes.IndexOf(quoteBefore) + 1, quote);
+                }
+                else
+                {
+                    quotes.Add(quote);
+                }
+                while (quotes.Count > Size) quotes.RemoveAt(0);
             }
 
             #endregion
@@ -455,7 +554,7 @@ namespace DoggoWire.Services
             public void Buy(ContractType contractType)
             {
                 if (!isTickHistoryInitialized) return;
-
+                Mark(ConvertToTicks(BuyDurationUnit, BuyDuration) + 2);
                 SendMsg(new BuyRequest()
                 {
                     Price = BuyAmount,
@@ -484,20 +583,12 @@ namespace DoggoWire.Services
 
                 for (int i = 0; i < obj.History.Prices.Length; i++)
                 {
-                    quotes.Add(new Quote(
+                    AddQuote(new Quote(
                         obj.Request.Symbol,
                         obj.History.Prices[i],
                         obj.History.Times[i]));
                 }
-                for (int i = 0; i < initQuotes.Count; i++)
-                {
-                    if (!quotes.Any(t => t.DateTime.Equals(initQuotes[i].DateTime)))
-                    {
-                        quotes.Add(initQuotes[i]);
-                    }
-                }
                 MarkCounter = 0;
-                initQuotes.Clear();
 
                 tradingInstanceUI?.OnQuoteHistoryReady(new QuoteHistoryEventArgs(quotes.ToArray()));
                 isTickHistoryInitialized = true;
@@ -507,6 +598,7 @@ namespace DoggoWire.Services
             {
                 if (obj.Error != null) return;
                 if (!obj.Tick.Symbol.Equals(ActiveSymbol.Symbol)) return;
+                Current.KickTheTickDog();
 
                 tickStreamId = obj.Tick.Id;
 
@@ -514,73 +606,51 @@ namespace DoggoWire.Services
 
                 if (isTickHistoryInitialized)
                 {
-                    tradingInstanceUI?.OnQuote(new QuoteEventArgs(quote));
-                    if (quotes.Any(t => t.DateTime.Equals(quote.DateTime))) return;
-                    quotes.Add(quote);
-                    while (quotes.Count > Size)
-                    {
-                        quotes.RemoveAt(0);
-                    }
+                    AddQuote(quote);
                     if (MarkCounter > 0) MarkCounter--;
+                    if (Count > LRSize)
+                    {
+                        LinearRegression(LRSize, 0, out double r, out double s);
+                        LRR2 = r;
+                        LRSlope = s;
+                        if (AutoBuyEnable)
+                        {
+                            if (!CutoffEnable ||
+                                (CutoffWinAmount > TotalSessionAmount &&
+                                -CutoffLoseAmount < TotalSessionAmount))
+                            {
+                                if (!Marked &&
+                                    r > AutoBuyR2Barrier &&
+                                    Math.Abs(s) > AutoBuySlopeBarrier)
+                                {
+                                    if (s > 0) Buy(ContractType.Call);
+                                    else Buy(ContractType.Put);
+                                }
+                            }
+                            else
+                            {
+                                AutoBuyEnable = false;
+                                tradingInstanceUI?.OnCutoff(new CutoffEventArgs(TotalSessionAmount > 0));
+                            }
+                        }
+                        LRReady = true;
+                    }
+                    else
+                    {
+                        LRReady = false;
+                    }
+                    tradingInstanceUI?.OnQuote(new QuoteEventArgs(quote));
                 }
                 else
                 {
-                    initQuotes.Add(quote);
-                }
-
-                if (!isTickInitialized)
-                {
-                    isTickInitialized = true;
+                    AddQuote(quote);
                     SendMsg(new TickHistoryRequest()
                     {
                         Symbol = ActiveSymbol.Symbol,
                         Count = Size
                     });
                 }
-
-                //if (SymbolQuotes == null) return;
-                //if (tickStreamResponse.Error != null) return;
-                //SymbolQuotes.AddQuote(new Quote(tickStreamResponse.Tick));
-
-                //if (((CutoffLoseEnable && TotalSessionAmount - BuyAmount <= -Math.Abs(CutoffLoseAmount)) ||
-                //    (CutoffWinEnable && TotalSessionAmount + BuyAmount >= Math.Abs(CutoffWinAmount))))
-                //{
-                //    onCutoff?.Invoke(new CutoffEventArgs(TotalSessionAmount + BuyAmount >= Math.Abs(CutoffWinAmount)));
-                //}
-                //decimal ongoingAmount = 0;
-                //foreach (Purchase ongoing in Purchases.FindAll(p => p.SellTransaction == null))
-                //{
-                //    ongoingAmount += -ongoing.BuyTransaction.Amount;
-                //}
-                //if (!SymbolQuotes.Marked && Pinger.IsTradeSafe &&
-                //    SymbolQuotes.Count >= LRTailSize + LRHeadSize &&
-                //    Math.Abs(SymbolQuotes.TailR2) >= LRTailR2Barrier &&
-                //    Math.Abs(SymbolQuotes.HeadR2) >= LRHeadR2Barrier &&
-                //    Math.Abs(SymbolQuotes.HeadSlope) >= LRHeadSlopeBarrier &&
-                //    Math.Abs(SymbolQuotes.TailSlope) >= LRTailSlopeBarrier &&
-                //    (CutoffLoseEnable ? ((TotalSessionAmount - ongoingAmount - BuyAmount) > -Math.Abs(CutoffLoseAmount)) : true) &&
-                //    (CutoffWinEnable ? ((TotalSessionAmount + ongoingAmount + BuyAmount) < Math.Abs(CutoffWinAmount)) : true) &&
-                //    (AllowStraight ? true :
-                //        (SymbolQuotes.TailSlope > 0 && SymbolQuotes.HeadSlope < 0) ||
-                //        (SymbolQuotes.TailSlope < 0 && SymbolQuotes.HeadSlope > 0)))
-                //{
-                //    SymbolQuotes.Mark(ConvertToTicks(BuyDurationUnit, BuyDuration));
-                //    SendMsg(new BuyRequest()
-                //    {
-                //        Price = BuyAmount,
-                //        Parameters = new BuyParameters()
-                //        {
-                //            Amount = BuyAmount,
-                //            Basis = ParameterBasis.Stake,
-                //            ContractType = ReverseLogic ? (SymbolQuotes.HeadSlope > 0 ? ContractType.Put : ContractType.Call) : (SymbolQuotes.HeadSlope > 0 ? ContractType.Call : ContractType.Put),
-                //            Currency = Current.Currency,
-                //            Duration = BuyDuration,
-                //            DurationUnit = BuyDurationUnit,
-                //            Symbol = ActiveSymbol.Symbol
-                //        }
-                //    });
-                //}
-                //onQuote?.Invoke(new QuoteEventArgs(SymbolQuotes));
+                SegregateTransactions();
             }
 
             private void TradingInstance_OnBuyResponse(BuyResponse obj)
@@ -607,7 +677,59 @@ namespace DoggoWire.Services
                         purchase.SellTransaction = obj.Transaction;
                         tradingInstanceUI?.OnTransaction(new PurchaseEventArgs(purchase));
                     }
+                    transactionsToSeg.Add(obj.Transaction);
                 }
+                SegregateTransactions();
+            }
+
+            private void SegregateTransactions()
+            {
+                List<Transaction> transactionsToRem = new List<Transaction>();
+                foreach (Transaction transaction in transactionsToSeg)
+                {
+                    if (transaction.Action == TransactionAction.Sell)
+                    {
+                        Quote quote = quotes.LastOrDefault(item => item.Epoch == transaction.DateExpiry);
+                        if (quote == null && quotes[quotes.Count - 1].Epoch == transaction.DateExpiry)
+                        {
+                            quote = quotes.LastOrDefault(item => item.Epoch == transaction.DateExpiry + 1);
+                        }
+                        if (quote != null)
+                        {
+                            quote.Transactions.Add(transaction);
+                        }
+                    }
+                    else
+                    {
+                        Purchase purchase = Purchases.LastOrDefault(item => item.ContractId == transaction.ContractId);
+                        if (purchase != null)
+                        {
+                            Quote quote = quotes.LastOrDefault(item => item.Epoch == purchase.BuyResponse.Buy.StartTime);
+                            if (quote == null)
+                            {
+                                quote = quotes.LastOrDefault(item => item.Epoch == purchase.BuyResponse.Buy.StartTime + 1);
+                            }
+                            if (quote != null)
+                            {
+                                quote.Transactions.Add(transaction);
+                            }
+                        }
+                        else
+                        {
+                            Quote quote = quotes.LastOrDefault(item => item.Epoch == transaction.TransactionTime);
+                            if (quote == null)
+                            {
+                                quote = quotes.LastOrDefault(item => item.Epoch == transaction.TransactionTime + 1);
+                            }
+                            if (quote != null)
+                            {
+                                quote.Transactions.Add(transaction);
+                            }
+                        }
+                    }
+                    transactionsToRem.Add(transaction);
+                }
+                foreach (Transaction transaction in transactionsToRem) transactionsToSeg.Remove(transaction);
             }
 
             #endregion

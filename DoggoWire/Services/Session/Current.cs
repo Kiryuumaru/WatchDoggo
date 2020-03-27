@@ -132,20 +132,36 @@ namespace DoggoWire.Services
 
             #region WatchdogTimer
 
-            private static Timer watchdogTimer;
-            private static void WatchdogTimer_Elapsed(object sender, ElapsedEventArgs e)
+            private static Timer watchdogPingTimer;
+            private static Timer watchdogTickTimer;
+
+            private static void WatchdogPingTimer_Elapsed(object sender, ElapsedEventArgs e)
             {
-                Console.WriteLine("Dog not kicked");
                 Start();
                 OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
             }
 
-            private static void KickTheDog()
+            private static void WatchdogTickTimer_Elapsed(object sender, ElapsedEventArgs e)
             {
-                if (watchdogTimer != null) watchdogTimer.Stop();
-                watchdogTimer = new Timer(5000);
-                watchdogTimer.Elapsed += WatchdogTimer_Elapsed;
-                watchdogTimer.Start();
+                if (ActiveSymbols.Count == 0) return;
+                Start();
+                OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
+            }
+
+            public static void KickThePingDog()
+            {
+                if (watchdogPingTimer != null) watchdogPingTimer.Stop();
+                watchdogPingTimer = new Timer(10000);
+                watchdogPingTimer.Elapsed += WatchdogPingTimer_Elapsed;
+                watchdogPingTimer.Start();
+            }
+
+            public static void KickTheTickDog()
+            {
+                if (watchdogTickTimer != null) watchdogTickTimer.Stop();
+                watchdogTickTimer = new Timer(10000);
+                watchdogTickTimer.Elapsed += WatchdogTickTimer_Elapsed;
+                watchdogTickTimer.Start();
             }
 
             #endregion
@@ -156,13 +172,14 @@ namespace DoggoWire.Services
             {
                 OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(true));
                 SendMsg(new PingRequest());
-                KickTheDog();
+                KickThePingDog();
             }
 
             private static void OnMessage(object sender, MessageEventArgs e)
             {
                 CrunchData(e.Data);
-                KickTheDog();
+                KickThePingDog();
+                Console.WriteLine("Dog kicked");
             }
 
             #endregion

@@ -194,7 +194,8 @@ namespace WatchDoggo.Forms
                 dataGridViewMarket.Rows.Clear();
                 dataGridViewProfitTable.Rows.Clear();
                 tradingInstanceWire.Close();
-                Session.Current.AuthorizeRequest();
+                Session.Current.Stop();
+                Session.Current.Start();
             }
         }
  
@@ -202,12 +203,9 @@ namespace WatchDoggo.Forms
         {
             if (e.ColumnIndex == 1)
             {
-                Session.TradingInstance tradingInstance = Session.Current.StartTrading((string)dataGridViewMarket.Rows[e.RowIndex].Tag);
-                if (tradingInstance == null) return;
-                Trading trading = new Trading(tradingInstance);
+                Trading trading = new Trading((string)dataGridViewMarket.Rows[e.RowIndex].Tag);
                 tradingInstanceWire.OnClose += delegate { trading.Close(); };
                 trading.Show();
-                WindowState = FormWindowState.Minimized;
             }
         }
 

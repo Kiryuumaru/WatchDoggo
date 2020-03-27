@@ -20,6 +20,13 @@ namespace DoggoWire.Models
         public BuyResponse BuyResponse { get; set; }
         public Transaction BuyTransaction { get; set; }
         public Transaction SellTransaction { get; set; }
+        public long ContractId
+        {
+            get
+            {
+                return BuyResponse.Buy.ContractId;
+            }
+        }
         public PurchaseType PurchaseType
         {
             get
