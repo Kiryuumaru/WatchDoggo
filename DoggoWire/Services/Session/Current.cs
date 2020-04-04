@@ -97,6 +97,11 @@ namespace DoggoWire.Services
             {
                 Task.Run(delegate
                 {
+                    try
+                    {
+                        if (ws != null) ws.Close();
+                    }
+                    catch { }
                     ws = new WebSocket("wss://ws.binaryws.com/websockets/v3?app_id=21644");
                     ws.OnOpen += OnOpen;
                     ws.OnMessage += OnMessage;
@@ -119,13 +124,15 @@ namespace DoggoWire.Services
                 }
             }
 
-            public static TradingInstance StartTrading(string symbol)
+            public static TradingInstance StartTrading(TradingInstance.ITradingInstanceUI uiInstance, string symbol)
             {
                 if (OpenTradingSymbols.Any(s => s.Equals(symbol))) return null;
                 OpenTradingSymbols.Add(symbol);
                 ActiveSymbol activeSymbol = ActiveSymbols.Find(s => s.Symbol.Equals(symbol));
                 if (activeSymbol == null) return null;
-                return new TradingInstance(activeSymbol);
+                TradingInstance tradingInstance = new TradingInstance(activeSymbol);
+                tradingInstance.SetTradingInstanceUI(uiInstance);
+                return tradingInstance;
             }
 
             #endregion
@@ -133,17 +140,9 @@ namespace DoggoWire.Services
             #region WatchdogTimer
 
             private static Timer watchdogPingTimer;
-            private static Timer watchdogTickTimer;
 
             private static void WatchdogPingTimer_Elapsed(object sender, ElapsedEventArgs e)
             {
-                Start();
-                OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
-            }
-
-            private static void WatchdogTickTimer_Elapsed(object sender, ElapsedEventArgs e)
-            {
-                if (ActiveSymbols.Count == 0) return;
                 Start();
                 OnConnectionChanges?.Invoke(new ConnectionChangesEventArgs(false));
             }
@@ -154,14 +153,6 @@ namespace DoggoWire.Services
                 watchdogPingTimer = new Timer(10000);
                 watchdogPingTimer.Elapsed += WatchdogPingTimer_Elapsed;
                 watchdogPingTimer.Start();
-            }
-
-            public static void KickTheTickDog()
-            {
-                if (watchdogTickTimer != null) watchdogTickTimer.Stop();
-                watchdogTickTimer = new Timer(10000);
-                watchdogTickTimer.Elapsed += WatchdogTickTimer_Elapsed;
-                watchdogTickTimer.Start();
             }
 
             #endregion

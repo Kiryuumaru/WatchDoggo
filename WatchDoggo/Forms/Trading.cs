@@ -20,14 +20,23 @@ namespace WatchDoggo.Forms
     {
         #region Properties
 
-        private readonly List<Purchase> purchasesToDraw = new List<Purchase>();
         private readonly ChartValues<Quote> chartValues;
-        private readonly ChartValues<Quote> chartLRValues;
-        private readonly ChartValues<PredictionQuote> predictionValues;
+        private readonly ChartValues<PredictionQuote> predictionHeadValues;
+        private readonly ChartValues<PredictionQuote> predictionTailValues;
+        private readonly AxisSection headAxisSection;
+        private readonly AxisSection tailAxisSection;
+        private readonly string symbol = "";
         private bool labelsInit = false;
         private bool justBuy = false;
         private Session.TradingInstance instance;
-        private readonly string symbol = "";
+
+        private readonly SolidColorBrush transparentBrush = Brushes.Transparent;
+        private readonly SolidColorBrush blackBrush = Brushes.Black;
+        private readonly SolidColorBrush skyBlueBrush = Brushes.SkyBlue;
+        private readonly SolidColorBrush blueBrush = Brushes.Blue;
+        private readonly SolidColorBrush redBrush = Brushes.Red;
+        private readonly SolidColorBrush greenBrush = Brushes.Green;
+        private readonly SolidColorBrush orangeBrush = Brushes.Orange;
 
         #endregion
 
@@ -37,48 +46,61 @@ namespace WatchDoggo.Forms
         {
             symbol = activeSymbol;
             InitializeComponent();
-            Session.OnConnectionChanges += OnConnectionChanges;
-            Init();
+
+            transparentBrush.Freeze();
+            blackBrush.Freeze();
+            skyBlueBrush.Freeze();
+            blueBrush.Freeze();
+            redBrush.Freeze();
+            greenBrush.Freeze();
+            orangeBrush.Freeze();
+
             Charting.For<Quote>(Mappers.Xy<Quote>()
                 .X(model => model.Epoch)
                 .Y(model => model.Value)
-                .Stroke(model => Brushes.Transparent)
+                .Stroke(model => transparentBrush)
                 .Fill(model =>
                 {
-                    if (model.Transactions.Count > 0)
+                    if (model.MockBuys.Count > 0) return blackBrush;
+                    else if (model.Transactions.Count > 0)
                     {
-                        if (model.Transactions[0].Action == TransactionAction.Buy)
-                        {
-                            return Brushes.SkyBlue;
-                        }
+                        if (model.Transactions[0].Action == TransactionAction.Buy) return skyBlueBrush;
                         else if (model.Transactions[0].Action == TransactionAction.Sell)
                         {
-                            if (model.Transactions[0].Amount == 0)
-                            {
-                                return Brushes.Red;
-                            }
-                            else
-                            {
-                                return Brushes.Green;
-                            }
+                            if (model.Transactions[0].Amount == 0) return redBrush;
+                            else return greenBrush;
                         }
-                        return Brushes.Transparent;
                     }
-                    else
-                    {
-                        return Brushes.Transparent;
-                    }
+                    return transparentBrush;
                 }));
             Charting.For<PredictionQuote>(Mappers.Xy<PredictionQuote>()
                 .X(model => model.Epoch)
                 .Y(model => model.Value)
-                .Stroke(model => Brushes.Transparent)
-                .Fill(model => Brushes.Transparent));
+                .Stroke(model => transparentBrush)
+                .Fill(model => transparentBrush));
 
             chartValues = new ChartValues<Quote>();
-            chartLRValues = new ChartValues<Quote>();
-            predictionValues = new ChartValues<PredictionQuote>();
+            predictionHeadValues = new ChartValues<PredictionQuote>();
+            predictionTailValues = new ChartValues<PredictionQuote>();
+            headAxisSection = new AxisSection
+            {
+                Fill = new SolidColorBrush
+                {
+                    Color = redBrush.Color,
+                    Opacity = .4
+                }
+            };
+            tailAxisSection = new AxisSection
+            {
+                Fill = new SolidColorBrush
+                {
+                    Color = orangeBrush.Color,
+                    Opacity = .4
+                }
+            };
 
+            cartesianChart.Hoverable = false;
+            cartesianChart.DisableAnimations = true;
             cartesianChart.Series.Add(new LineSeries
             {
                 Values = chartValues,
@@ -88,7 +110,18 @@ namespace WatchDoggo.Forms
                 LabelPoint = point =>
                 {
                     Quote model = point.Instance as Quote;
-                    if (model.Transactions.Count > 0)
+                    if (model.MockBuys.Count > 0)
+                    {
+                        if (model.MockBuys[0].ContractType == ContractType.Call)
+                        {
+                            return "Call↗ " + Session.Current.Currency + " " + model.Transactions[0].Amount.ToString("#.##");
+                        }
+                        else if (model.MockBuys[0].ContractType == ContractType.Put)
+                        {
+                            return "Put↘ " + Session.Current.Currency + " " + model.Transactions[0].Amount.ToString("#.##");
+                        }
+                    }
+                    else if (model.Transactions.Count > 0)
                     {
                         if (model.Transactions[0].Action == TransactionAction.Buy)
                         {
@@ -105,58 +138,29 @@ namespace WatchDoggo.Forms
                         {
                             return Session.Current.Currency + " " + model.Transactions[0].Amount.ToString("0.##");
                         }
-                        return model.Value.ToString("#.##");
                     }
-                    else
-                    {
-                        return model.Value.ToString("#.##");
-                    }
+                    return model.Value.ToString("#.##");
                 }
             });
             cartesianChart.Series.Add(new LineSeries
             {
-                Values = predictionValues,
-                PointGeometrySize = 15,
-                StrokeThickness = 2
+                Values = predictionHeadValues,
+                Fill = transparentBrush,
+                Stroke = redBrush,
+                PointGeometry = null
             });
             cartesianChart.Series.Add(new LineSeries
             {
-                Values = chartLRValues,
-                PointGeometrySize = 15,
-                StrokeThickness = 2,
-                DataLabels = false,
-                LabelPoint = point =>
-                {
-                    Quote model = point.Instance as Quote;
-                    if (model.Transactions.Count > 0)
-                    {
-                        if (model.Transactions[0].Action == TransactionAction.Buy)
-                        {
-                            if (model.Transactions[0].Longcode.Contains("higher"))
-                            {
-                                return "Call↗ " + Session.Current.Currency + " " + model.Transactions[0].Amount.ToString("#.##");
-                            }
-                            else if (model.Transactions[0].Longcode.Contains("lower"))
-                            {
-                                return "Put↘ " + Session.Current.Currency + " " + model.Transactions[0].Amount.ToString("#.##");
-                            }
-                        }
-                        else if (model.Transactions[0].Action == TransactionAction.Sell)
-                        {
-                            return Session.Current.Currency + " " + model.Transactions[0].Amount.ToString("0.##");
-                        }
-                        return model.Value.ToString("#.##");
-                    }
-                    else
-                    {
-                        return model.Value.ToString("#.##");
-                    }
-                }
+                Values = predictionTailValues,
+                Fill = transparentBrush,
+                Stroke = orangeBrush,
+                PointGeometry = null
             });
             cartesianChart.AxisX.Add(new Axis
             {
                 DisableAnimations = true,
-                LabelFormatter = value => Helpers.ConvertEpoch((long)value).ToString("mm:ss")
+                LabelFormatter = value => Helpers.ConvertEpoch((long)value).ToString("mm:ss"),
+                Sections = new SectionsCollection { headAxisSection, tailAxisSection }
             });
             cartesianChart.AxisY.Add(new Axis
             {
@@ -169,27 +173,34 @@ namespace WatchDoggo.Forms
         private void Init()
         {
             if (instance != null) instance.Dispose();
-            instance = Session.Current.StartTrading(symbol);
-            instance.SetTradingInstanceUI(this);
+            instance = Session.Current.StartTrading(this, symbol);
             if (instance == null)
             {
                 Close();
                 return;
             }
-            Enabled = false;
-            instance.SetTradingInstanceUI(this);
+            instance.Restart();
+            panelMain.Enabled = false;
             Text = instance.ActiveSymbol.DisplayName;
             labelCurrencyTrade.Text = Session.Current.Currency;
             labelWinCurr.Text = Session.Current.Currency;
             labelLoseCurr.Text = Session.Current.Currency;
             textBoxBuyAmount.Text = instance.BuyAmount.ToString();
             numericUpDownDuration.Value = instance.BuyDuration;
-            textBoxSlopeThres.Text = instance.AutoBuySlopeBarrier.ToString();
-            textBoxR2Thres.Text = instance.AutoBuyR2Barrier.ToString();
+            textBoxHeadSlopeThres.Text = instance.HeadSlopeBarrier.ToString();
+            textBoxHeadR2Thres.Text = instance.HeadR2Barrier.ToString();
+            textBoxTailSlopeThres.Text = instance.TailSlopeBarrier.ToString();
+            textBoxTailR2Thres.Text = instance.TailR2Barrier.ToString();
             checkBoxCuttoff.Checked = instance.CutoffEnable;
+            checkBoxReverse.Checked = instance.ReverseLogic;
+            checkBoxBuyBan.Checked = instance.BuyBanEnable;
             textBoxLoseCutoff.Text = instance.CutoffLoseAmount.ToString();
             textBoxWinCutoff.Text = instance.CutoffWinAmount.ToString();
-            numericUpDownLRSize.Value = instance.LRSize;
+            numericUpDownBuyBanLose.Value = instance.BuyBanLose;
+            numericUpDownBuyBanDuration.Value = instance.BuyBanDuration;
+            numericUpDownHeadLRSize.Value = instance.LRHeadSize;
+            numericUpDownTailLRSize.Value = instance.LRTailSize;
+            numericUpDownOffset.Value = instance.LROffset;
             switch (instance.BuyDurationUnit)
             {
                 case DurationUnit.Ticks:
@@ -215,19 +226,22 @@ namespace WatchDoggo.Forms
 
         #region Callbacks
 
-        private void OnConnectionChanges(Session.ConnectionChangesEventArgs args)
+        public void OnConnectionChanges(Session.TradingInstance.ConnectionChangesEventArgs args)
         {
             if (args.Connected)
             {
-                instance.Start();
+                Invoke(new MethodInvoker(delegate
+                {
+                    Text = instance.ActiveSymbol.DisplayName;
+                    panelMain.Enabled = true;
+                }));
             }
             else
             {
-                instance.Stop();
                 Invoke(new MethodInvoker(delegate
                 {
                     Text = instance.ActiveSymbol.DisplayName + " (Disconnected)";
-                    Enabled = false;
+                    panelMain.Enabled = false;
                 }));
             }
         }
@@ -235,16 +249,12 @@ namespace WatchDoggo.Forms
         public void OnQuoteHistoryReady(Session.TradingInstance.QuoteHistoryEventArgs args)
         {
             chartValues.Clear();
-            chartLRValues.Clear();
+            predictionHeadValues.Clear();
+            predictionTailValues.Clear();
             foreach (Quote quote in args.Quotes)
             {
                 AddChartValue(quote);
             }
-            Invoke(new MethodInvoker(delegate
-            {
-                Text = instance.ActiveSymbol.DisplayName;
-                Enabled = true;
-            }));
         }
 
         public void OnQuote(Session.TradingInstance.QuoteEventArgs args)
@@ -261,26 +271,40 @@ namespace WatchDoggo.Forms
             }
             if (instance.LRReady)
             {
-                predictionValues.Clear();
+                predictionHeadValues.Clear();
+                predictionTailValues.Clear();
                 for (int i = 0; i < instance.ConvertToTicks(instance.BuyDurationUnit, instance.BuyDuration) + 1; i++)
                 {
-                    Quote latest = instance[instance.Count - 1];
-                    double value = i * instance.LRSlope + latest.Value;
-                    long epoch = latest.Epoch + (instance.TickDuration * i);
-                    predictionValues.Add(new PredictionQuote(value, epoch));
+                    Quote latestHead = instance[instance.Count - 1];
+                    double value = i * instance.LRHeadSlope + latestHead.Value;
+                    long epoch = latestHead.Epoch + (instance.TickEpochDuration * i);
+                    predictionHeadValues.Add(new PredictionQuote(value, epoch));
+                }
+                for (int i = 0; i < instance.ConvertToTicks(instance.BuyDurationUnit, instance.BuyDuration) + 1; i++)
+                {
+                    Quote latestTail = instance[instance.Count - instance.LROffset - 1];
+                    double value = i * instance.LRTailSlope + latestTail.Value;
+                    long epoch = latestTail.Epoch + (instance.TickEpochDuration * i);
+                    predictionTailValues.Add(new PredictionQuote(value, epoch));
                 }
                 Invoke(new MethodInvoker(delegate
                 {
-                    labelSlope.Text = "Slope = " + instance.LRSlope.ToString();
-                    labelR2.Text = "RS = " + instance.LRR2.ToString();
+                    labelSlopeHead.Text = "Head Slope = " + instance.LRHeadSlope.ToString();
+                    labelR2Head.Text = "Head RS = " + instance.LRHeadR2.ToString();
+                    labelSlopeTail.Text = "Tail Slope = " + instance.LRTailSlope.ToString();
+                    labelR2Tail.Text = "Tail RS = " + instance.LRTailR2.ToString();
                 }));
             }
         }
 
         public void OnTransaction(Session.TradingInstance.PurchaseEventArgs args)
         {
-            purchasesToDraw.Add(args.Purchase);
             Invoke(new MethodInvoker(RefreshLabels));
+        }
+
+        public void OnMockTransaction(Session.TradingInstance.MockPurchaseEventArgs args)
+        {
+
         }
 
         public void OnCutoff(Session.TradingInstance.CutoffEventArgs args)
@@ -299,12 +323,20 @@ namespace WatchDoggo.Forms
                 textBoxBuyAmount.Enabled = !instance.AutoBuyEnable;
                 numericUpDownDuration.Enabled = !instance.AutoBuyEnable;
                 comboBoxUnit.Enabled = !instance.AutoBuyEnable;
-                textBoxR2Thres.Enabled = !instance.AutoBuyEnable;
-                textBoxSlopeThres.Enabled = !instance.AutoBuyEnable;
+                textBoxHeadR2Thres.Enabled = !instance.AutoBuyEnable;
+                textBoxHeadSlopeThres.Enabled = !instance.AutoBuyEnable;
+                textBoxTailR2Thres.Enabled = !instance.AutoBuyEnable;
+                textBoxTailSlopeThres.Enabled = !instance.AutoBuyEnable;
                 checkBoxCuttoff.Enabled = !instance.AutoBuyEnable;
+                checkBoxReverse.Enabled = !instance.AutoBuyEnable;
+                checkBoxBuyBan.Enabled = !instance.AutoBuyEnable;
                 textBoxWinCutoff.Enabled = !instance.AutoBuyEnable;
                 textBoxLoseCutoff.Enabled = !instance.AutoBuyEnable;
-                numericUpDownLRSize.Enabled = !instance.AutoBuyEnable;
+                numericUpDownBuyBanLose.Enabled = !instance.AutoBuyEnable;
+                numericUpDownBuyBanDuration.Enabled = !instance.AutoBuyEnable;
+                numericUpDownHeadLRSize.Enabled = !instance.AutoBuyEnable;
+                numericUpDownTailLRSize.Enabled = !instance.AutoBuyEnable;
+                numericUpDownOffset.Enabled = !instance.AutoBuyEnable;
                 labelCurrencyTrade.Enabled = !instance.AutoBuyEnable;
                 labelWinCurr.Enabled = !instance.AutoBuyEnable;
                 labelLoseCurr.Enabled = !instance.AutoBuyEnable;
@@ -313,10 +345,15 @@ namespace WatchDoggo.Forms
                 label2.Enabled = !instance.AutoBuyEnable;
                 label3.Enabled = !instance.AutoBuyEnable;
                 label4.Enabled = !instance.AutoBuyEnable;
-                label12.Enabled = !instance.AutoBuyEnable;
                 label7.Enabled = !instance.AutoBuyEnable;
                 label11.Enabled = !instance.AutoBuyEnable;
                 label6.Enabled = !instance.AutoBuyEnable;
+                label5.Enabled = !instance.AutoBuyEnable;
+                label1.Enabled = !instance.AutoBuyEnable;
+                label8.Enabled = !instance.AutoBuyEnable;
+                label12.Enabled = !instance.AutoBuyEnable;
+                label14.Enabled = !instance.AutoBuyEnable;
+                label13.Enabled = !instance.AutoBuyEnable;
             }
             catch
             {
@@ -326,12 +363,20 @@ namespace WatchDoggo.Forms
                     textBoxBuyAmount.Enabled = !instance.AutoBuyEnable;
                     numericUpDownDuration.Enabled = !instance.AutoBuyEnable;
                     comboBoxUnit.Enabled = !instance.AutoBuyEnable;
-                    textBoxR2Thres.Enabled = !instance.AutoBuyEnable;
-                    textBoxSlopeThres.Enabled = !instance.AutoBuyEnable;
+                    textBoxHeadR2Thres.Enabled = !instance.AutoBuyEnable;
+                    textBoxHeadSlopeThres.Enabled = !instance.AutoBuyEnable;
+                    textBoxTailR2Thres.Enabled = !instance.AutoBuyEnable;
+                    textBoxTailSlopeThres.Enabled = !instance.AutoBuyEnable;
                     checkBoxCuttoff.Enabled = !instance.AutoBuyEnable;
+                    checkBoxReverse.Enabled = !instance.AutoBuyEnable;
+                    checkBoxBuyBan.Enabled = !instance.AutoBuyEnable;
                     textBoxWinCutoff.Enabled = !instance.AutoBuyEnable;
                     textBoxLoseCutoff.Enabled = !instance.AutoBuyEnable;
-                    numericUpDownLRSize.Enabled = !instance.AutoBuyEnable;
+                    numericUpDownBuyBanLose.Enabled = !instance.AutoBuyEnable;
+                    numericUpDownBuyBanDuration.Enabled = !instance.AutoBuyEnable;
+                    numericUpDownHeadLRSize.Enabled = !instance.AutoBuyEnable;
+                    numericUpDownTailLRSize.Enabled = !instance.AutoBuyEnable;
+                    numericUpDownOffset.Enabled = !instance.AutoBuyEnable;
                     labelCurrencyTrade.Enabled = !instance.AutoBuyEnable;
                     labelWinCurr.Enabled = !instance.AutoBuyEnable;
                     labelLoseCurr.Enabled = !instance.AutoBuyEnable;
@@ -340,10 +385,15 @@ namespace WatchDoggo.Forms
                     label2.Enabled = !instance.AutoBuyEnable;
                     label3.Enabled = !instance.AutoBuyEnable;
                     label4.Enabled = !instance.AutoBuyEnable;
-                    label12.Enabled = !instance.AutoBuyEnable;
                     label7.Enabled = !instance.AutoBuyEnable;
                     label11.Enabled = !instance.AutoBuyEnable;
                     label6.Enabled = !instance.AutoBuyEnable;
+                    label5.Enabled = !instance.AutoBuyEnable;
+                    label1.Enabled = !instance.AutoBuyEnable;
+                    label8.Enabled = !instance.AutoBuyEnable;
+                    label12.Enabled = !instance.AutoBuyEnable;
+                    label14.Enabled = !instance.AutoBuyEnable;
+                    label13.Enabled = !instance.AutoBuyEnable;
                 }));
             }
         }
@@ -355,13 +405,12 @@ namespace WatchDoggo.Forms
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            instance.Start();
+            Init();
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
             instance.Dispose();
-            Session.OnConnectionChanges -= OnConnectionChanges;
             base.OnClosing(e);
         }
 
@@ -376,6 +425,7 @@ namespace WatchDoggo.Forms
             justBuy = true;
             instance.Buy(ContractType.Call);
         }
+
         private void Put()
         {
             buttonUp.Enabled = false;
@@ -402,51 +452,28 @@ namespace WatchDoggo.Forms
 
         private void AddChartValue(Quote quote)
         {
-            if (chartLRValues.Any(item => item.Epoch == quote.Epoch)) return;
-            if (chartValues.Any(item => item.Epoch == quote.Epoch)) return;
-            Quote quoteBeforeLR = chartLRValues.LastOrDefault(item => item.Epoch < quote.Epoch);
-            if (chartLRValues.Contains(quoteBeforeLR))
+            try
             {
-                chartLRValues.Insert(chartLRValues.IndexOf(quoteBeforeLR) + 1, quote);
-            }
-            else
-            {
-                chartLRValues.Add(quote);
-            }
-            if (instance.Size - instance.LRSize < instance.Count) chartLRValues.RemoveAt(0);
-            while (chartLRValues.Count >= instance.LRSize)
-            {
-                Quote quoteRemove = chartLRValues[0];
-                chartLRValues.RemoveAt(0);
-                Quote quoteBefore = chartValues.LastOrDefault(item => item.Epoch < quoteRemove.Epoch);
+                if (chartValues.Any(item => item.Epoch == quote.Epoch)) return;
+                Quote quoteBefore = chartValues.LastOrDefault(item => item.Epoch < quote.Epoch);
                 if (chartValues.Contains(quoteBefore))
                 {
-                    chartValues.Insert(chartValues.IndexOf(quoteBefore) + 1, quoteRemove);
+                    chartValues.Insert(chartValues.IndexOf(quoteBefore) + 1, quote);
                 }
                 else
                 {
-                    chartValues.Add(quoteRemove);
+                    chartValues.Add(quote);
                 }
-            }
-            while (chartValues.Count > instance.Size - instance.LRSize)
-            {
-                Quote quoteRemove = chartValues[chartValues.Count - 1];
-                chartValues.RemoveAt(chartValues.Count - 1);
-                Quote quoteAfter = chartLRValues.LastOrDefault(item => item.Epoch < quoteRemove.Epoch);
-                if (chartLRValues.Contains(quoteAfter))
+                if (!checkBoxFreeze.Checked) while (chartValues.Count > instance.Size) chartValues.RemoveAt(0);
+                Invoke(new MethodInvoker(delegate
                 {
-                    chartLRValues.Insert(chartLRValues.IndexOf(quoteAfter) - 1, quoteRemove);
-                }
-                else
-                {
-                    chartLRValues.Insert(0, quoteRemove);
-                }
+                    headAxisSection.Value = instance.LastEpoch - instance.LRHeadSize * instance.TickEpochDuration;
+                    headAxisSection.SectionWidth = instance.LRHeadSize * instance.TickEpochDuration;
+                    tailAxisSection.Value = instance.LastEpoch - instance.LRTailSize * instance.TickEpochDuration - instance.LROffset * instance.TickEpochDuration;
+                    tailAxisSection.SectionWidth = instance.LRTailSize * instance.TickEpochDuration;
+                }));
             }
-            while (chartLRValues.Count + chartValues.Count >= instance.Size) chartValues.RemoveAt(0);
-            if (instance.Size - instance.LRSize < instance.Count)
-            {
-                chartLRValues.Insert(0, instance[instance.Size - instance.LRSize - 1]);
-            }
+            catch { }
         }
 
         #endregion
@@ -518,45 +545,89 @@ namespace WatchDoggo.Forms
             instance.CutoffEnable = checkBoxCuttoff.Checked;
         }
 
-        private void TextBoxR2Thres_TextChanged(object sender, EventArgs e)
+        private void CheckBoxReverse_CheckedChanged(object sender, EventArgs e)
         {
-            if (textBoxR2Thres.Text.Equals(instance.AutoBuyR2Barrier.ToString())) return;
-            if (double.TryParse(textBoxR2Thres.Text, out double result))
+            instance.ReverseLogic = checkBoxReverse.Checked;
+        }
+
+        private void TextBoxHeadR2Thres_TextChanged(object sender, EventArgs e)
+        {
+            if (textBoxHeadR2Thres.Text.Equals(instance.HeadR2Barrier.ToString())) return;
+            if (double.TryParse(textBoxHeadR2Thres.Text, out double result))
             {
-                instance.AutoBuyR2Barrier = result;
+                instance.HeadR2Barrier = result;
             }
         }
 
-        private void TextBoxR2Thres_Leave(object sender, EventArgs e)
+        private void TextBoxHeadR2Thres_Leave(object sender, EventArgs e)
         {
-            if (double.TryParse(textBoxR2Thres.Text, out double result))
+            if (double.TryParse(textBoxHeadR2Thres.Text, out double result))
             {
-                instance.AutoBuyR2Barrier = result;
+                instance.HeadR2Barrier = result;
             }
             else
             {
-                textBoxR2Thres.Text = instance.AutoBuyR2Barrier.ToString();
+                textBoxHeadR2Thres.Text = instance.HeadR2Barrier.ToString();
             }
         }
 
-        private void TextBoxSlopeThres_TextChanged(object sender, EventArgs e)
+        private void TextBoxHeadSlopeThres_TextChanged(object sender, EventArgs e)
         {
-            if (textBoxSlopeThres.Text.Equals(instance.AutoBuySlopeBarrier.ToString())) return;
-            if (double.TryParse(textBoxSlopeThres.Text, out double result))
+            if (textBoxHeadSlopeThres.Text.Equals(instance.HeadSlopeBarrier.ToString())) return;
+            if (double.TryParse(textBoxHeadSlopeThres.Text, out double result))
             {
-                instance.AutoBuySlopeBarrier = result;
+                instance.HeadSlopeBarrier = result;
             }
         }
 
-        private void TextBoxSlopeThres_Leave(object sender, EventArgs e)
+        private void TextBoxHeadSlopeThres_Leave(object sender, EventArgs e)
         {
-            if (double.TryParse(textBoxSlopeThres.Text, out double result))
+            if (double.TryParse(textBoxHeadSlopeThres.Text, out double result))
             {
-                instance.AutoBuySlopeBarrier = result;
+                instance.HeadSlopeBarrier = result;
             }
             else
             {
-                textBoxSlopeThres.Text = instance.AutoBuySlopeBarrier.ToString();
+                textBoxHeadSlopeThres.Text = instance.HeadSlopeBarrier.ToString();
+            }
+        }
+
+        private void TextBoxTailR2Thres_TextChanged(object sender, EventArgs e)
+        {
+            if (textBoxTailR2Thres.Text.Equals(instance.TailR2Barrier.ToString())) return;
+            if (double.TryParse(textBoxTailR2Thres.Text, out double result))
+            {
+                instance.TailR2Barrier = result;
+            }
+        }
+
+        private void TextBoxTailR2Thres_Leave(object sender, EventArgs e)
+        {
+            if (double.TryParse(textBoxTailR2Thres.Text, out double result))
+            {
+                instance.TailR2Barrier = result;
+            }
+            else
+            {
+                textBoxTailR2Thres.Text = instance.TailR2Barrier.ToString();
+            }
+        }
+
+        private void TextBoxTailSlopeThres_TextChanged(object sender, EventArgs e)
+        {
+            if (textBoxTailSlopeThres.Text.Equals(instance.TailSlopeBarrier.ToString())) return;
+            if (double.TryParse(textBoxTailSlopeThres.Text, out double result))
+            {
+                instance.TailSlopeBarrier = result;
+            }
+        }
+
+        private void TextBoxTailSlopeThres_Leave(object sender, EventArgs e)
+        {
+            if (textBoxTailSlopeThres.Text.Equals(instance.TailSlopeBarrier.ToString())) return;
+            if (double.TryParse(textBoxTailSlopeThres.Text, out double result))
+            {
+                instance.TailSlopeBarrier = result;
             }
         }
 
@@ -602,11 +673,44 @@ namespace WatchDoggo.Forms
             }
         }
 
-        private void NumericUpDownLRSize_ValueChanged(object sender, EventArgs e)
+        private void CheckBoxBuyBan_CheckedChanged(object sender, EventArgs e)
         {
-            if (numericUpDownLRSize.Value == instance.LRSize) return;
-            numericUpDownLRSize.Value = (int)numericUpDownLRSize.Value;
-            instance.LRSize = (int)numericUpDownLRSize.Value;
+            instance.BuyBanEnable = checkBoxBuyBan.Checked;
+        }
+
+        private void NumericUpDownBuyBanLose_ValueChanged(object sender, EventArgs e)
+        {
+            if (numericUpDownBuyBanLose.Value == instance.BuyBanLose) return;
+            numericUpDownBuyBanLose.Value = (int)numericUpDownBuyBanLose.Value;
+            instance.BuyBanLose = (int)numericUpDownBuyBanLose.Value;
+        }
+
+        private void NumericUpDownBuyBanDuration_ValueChanged(object sender, EventArgs e)
+        {
+            if (numericUpDownBuyBanDuration.Value == instance.BuyBanDuration) return;
+            numericUpDownBuyBanDuration.Value = (int)numericUpDownBuyBanDuration.Value;
+            instance.BuyBanDuration = (int)numericUpDownBuyBanDuration.Value;
+        }
+
+        private void NumericUpDownHeadLRSize_ValueChanged(object sender, EventArgs e)
+        {
+            if (numericUpDownHeadLRSize.Value == instance.LRHeadSize) return;
+            numericUpDownHeadLRSize.Value = (int)numericUpDownHeadLRSize.Value;
+            instance.LRHeadSize = (int)numericUpDownHeadLRSize.Value;
+        }
+
+        private void NumericUpDownTailLRSize_ValueChanged(object sender, EventArgs e)
+        {
+            if (numericUpDownTailLRSize.Value == instance.LRTailSize) return;
+            numericUpDownTailLRSize.Value = (int)numericUpDownTailLRSize.Value;
+            instance.LRTailSize = (int)numericUpDownTailLRSize.Value;
+        }
+
+        private void NumericUpDownOffset_ValueChanged(object sender, EventArgs e)
+        {
+            if (numericUpDownOffset.Value == instance.LROffset) return;
+            numericUpDownOffset.Value = (int)numericUpDownOffset.Value;
+            instance.LROffset = (int)numericUpDownOffset.Value;
         }
 
         private void ButtonAutoBuy_Click(object sender, EventArgs e)

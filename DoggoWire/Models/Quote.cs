@@ -10,6 +10,7 @@ namespace DoggoWire.Models
     public class Quote
     {
         public List<Transaction> Transactions { get; private set; } = new List<Transaction>();
+        public List<MockBuy> MockBuys { get; private set; } = new List<MockBuy>();
         public string Symbol { get; private set; }
         public double Value { get; private set; }
         public long Epoch { get; private set; }

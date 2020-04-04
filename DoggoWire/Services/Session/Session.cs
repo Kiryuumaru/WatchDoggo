@@ -22,16 +22,22 @@ namespace DoggoWire.Services
             public const string Auth = "state";
             public const string SelectedAuth = "state_selected";
             public const string TradeSafeMillis = "trade_safe_millis";
-            public const string Size = "size";
-            public const string LRSize = "lr_size";
-            public const string LRR2Barrier = "lr_r2_barrier";
-            public const string LRSlopeBarrier = "lr_slope_barrier";
+            public const string LRHeadR2Barrier = "lr_head_r2_barrier";
+            public const string LRHeadSlopeBarrier = "lr_head_slope_barrier";
+            public const string LRTailR2Barrier = "lr_tail_r2_barrier";
+            public const string LRTailSlopeBarrier = "lr_tail_slope_barrier";
+            public const string LRHeadSize = "lr_head_size";
+            public const string LRTailSize = "lr_tail_size";
+            public const string LROffset = "lr_offset";
             public const string BuyAmount = "buy_amount";
             public const string BuyDuration = "buy_duration";
             public const string BuyDurationUnit = "buy_duration_unit";
             public const string CutoffEnable = "cutoff";
             public const string CutoffLoseAmount = "cutoff_lose_amount";
             public const string CutoffWinAmount = "cutoff_win_amount";
+            public const string BuyBanEnable = "buy_ban_enable";
+            public const string BuyBanLose = "buy_ban_lose";
+            public const string BuyBanDuration = "buy_ban_duration";
             public const string ReverseLogic = "reverse_logic";
             public const string AllowStraight = "allow_straight";
         }
@@ -70,10 +76,7 @@ namespace DoggoWire.Services
         public static void Init(IStorage _storage)
         {
             storage = _storage;
-            if (ws == null)
-            {
-                Current.Start();
-            }
+            Current.Start();
         }
 
         #endregion

@@ -28,8 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle7 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle8 = new System.Windows.Forms.DataGridViewCellStyle();
             this.panel4 = new System.Windows.Forms.Panel();
             this.buttonReset = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
@@ -239,8 +239,8 @@
             // StatementColumn2
             // 
             this.StatementColumn2.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.StatementColumn2.DefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle7.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.StatementColumn2.DefaultCellStyle = dataGridViewCellStyle7;
             this.StatementColumn2.HeaderText = "Contract";
             this.StatementColumn2.Name = "StatementColumn2";
             this.StatementColumn2.ReadOnly = true;
@@ -249,8 +249,8 @@
             // StatementColumn4
             // 
             this.StatementColumn4.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCellsExceptHeader;
-            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.StatementColumn4.DefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle8.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.StatementColumn4.DefaultCellStyle = dataGridViewCellStyle8;
             this.StatementColumn4.HeaderText = "Profit/Loss";
             this.StatementColumn4.MinimumWidth = 100;
             this.StatementColumn4.Name = "StatementColumn4";
@@ -281,6 +281,7 @@
             // 
             this.splitContainer1.BackColor = System.Drawing.SystemColors.Window;
             this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer1.Enabled = false;
             this.splitContainer1.IsSplitterFixed = true;
             this.splitContainer1.Location = new System.Drawing.Point(0, 0);
             this.splitContainer1.Name = "splitContainer1";
@@ -317,7 +318,6 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(734, 411);
             this.Controls.Add(this.splitContainer1);
-            this.Enabled = false;
             this.MinimumSize = new System.Drawing.Size(750, 450);
             this.Name = "Main";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;

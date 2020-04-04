@@ -90,11 +90,12 @@ namespace WatchDoggo.Forms
                 Invoke(new MethodInvoker(delegate
                 {
                     if (Disposing) return;
+                    Text = Session.Current.Email + " (Disconnected)";
                     dataGridViewMarket.Rows.Clear();
                     dataGridViewProfitTable.Rows.Clear();
                     labelAccount.Text = "N/A";
                     labelBalance.Text = "N/A";
-                    Enabled = false;
+                    splitContainer1.Enabled = false;
                 }));
             }
         }
@@ -109,7 +110,7 @@ namespace WatchDoggo.Forms
                     Text = Session.Current.Email;
                     labelAccount.Text = Session.Current.LoginId + (Session.Current.Virtual ? " (virtual)" : "");
                     labelBalance.Text = Session.Current.Balance.ToString("0.################") + " " + Session.Current.Currency;
-                    Enabled = true;
+                    splitContainer1.Enabled = true;
                 }));
                 Session.Current.BalanceRequest();
                 Session.Current.ActiveSymbolsRequest();
